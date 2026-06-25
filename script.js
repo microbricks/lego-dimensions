@@ -1,4 +1,4 @@
-// ====== TOY PAD LOGICA ======
+// ====== TOY PAD ======
 const figures = {
   batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#00bcd4" },
   gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#9c27b0" },
@@ -33,14 +33,20 @@ function renderFigures() {
 
 function selectFigure(id) {
   selectedFigureId = id;
-  document.querySelectorAll(".figure").forEach(el => el.classList.toggle("active", el.dataset.id === id));
+  document.querySelectorAll(".figure").forEach(el =>
+    el.classList.toggle("active", el.dataset.id === id)
+  );
   const fig = figures[id];
-  padOutput.textContent = `${fig.name} geselecteerd.\nPower: ${fig.power}\n${fig.description}\nKlik nu op een zone.`;
+  padOutput.textContent =
+    `${fig.name} geselecteerd.\nPower: ${fig.power}\n${fig.description}\nKlik nu op een zone.`;
 }
 
 document.querySelectorAll(".zone").forEach(zoneEl => {
   zoneEl.onclick = () => {
-    if (!selectedFigureId) return padOutput.textContent = "Selecteer eerst een figuur.";
+    if (!selectedFigureId) {
+      padOutput.textContent = "Selecteer eerst een figuur.";
+      return;
+    }
     placeFigureOnZone(selectedFigureId, zoneEl.dataset.zone);
   };
 });
@@ -59,9 +65,80 @@ function placeFigureOnZone(figureId, zoneId) {
   zoneEl.style.borderColor = fig.color;
   zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
 
-  padOutput.textContent = `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\nPower: ${fig.power}\n${fig.description}`;
+  padOutput.textContent =
+    `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\nPower: ${fig.power}\n${fig.description}`;
 
   applyPowersFromZones();
+}
+
+// ====== JOY-CON INPUT ======
+let joyconLeft = null;
+let joyconRight = null;
+
+let joy = {
+  lx: 0, ly: 0,
+  rx: 0, ry: 0,
+  shakeL: false,
+  shakeR: false,
+  zl: false,
+  zr: false,
+  sl: false,
+  sr: false,
+  home: false
+};
+
+async function connectJoyCons() {
+  if (!navigator.hid) {
+    alert("WebHID wordt niet ondersteund in deze browser.");
+    return;
+  }
+
+  const devices = await navigator.hid.requestDevice({
+    filters: [{ vendorId: 0x057e }]
+  });
+
+  for (const device of devices) {
+    await device.open();
+
+    if (device.productId === 0x2006) {
+      console.log("Left Joy-Con verbonden");
+      joyconLeft = device;
+    }
+    if (device.productId === 0x2007) {
+      console.log("Right Joy-Con verbonden");
+      joyconRight = device;
+    }
+
+    device.addEventListener("inputreport", handleJoyConInput);
+  }
+}
+
+document.addEventListener("keydown", e => {
+  if (e.key === "j") connectJoyCons();
+});
+
+function handleJoyConInput(e) {
+  const data = new Uint8Array(e.data.buffer);
+
+  if (e.device === joyconLeft) {
+    joy.lx = (data[6] - 128) / 128;
+    joy.ly = (data[7] - 128) / 128;
+    joy.shakeL = data[13] > 200;
+    joy.zl = (data[5] & 0x40) !== 0;
+    joy.sl = (data[5] & 0x01) !== 0;
+  }
+
+  if (e.device === joyconRight) {
+    joy.rx = (data[6] - 128) / 128;
+    joy.ry = (data[7] - 128) / 128;
+    joy.shakeR = data[13] > 200;
+    joy.zr = (data[5] & 0x80) !== 0;
+    joy.sr = (data[5] & 0x02) !== 0;
+    joy.home = (data[4] & 0x10) !== 0;
+  }
+
+  if (joy.sl) padOverlay.style.display = "flex";
+  if (joy.sr) padOverlay.style.display = "none";
 }
 
 // ====== 3D GAME ======
@@ -77,8 +154,6 @@ let jumpStrength = 0.18;
 let canTeleport = false;
 
 function init3D() {
-  console.log("init3D gestart");
-
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1d2333);
   scene.fog = new THREE.Fog(0x1d2333, 8, 25);
@@ -94,7 +169,6 @@ function init3D() {
   const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
   scene.add(light);
 
-  // ====== MATERIALS ======
   const matFloor = new THREE.MeshLambertMaterial({ color: 0x1b1f2b, flatShading: true });
   const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffe74c, flatShading: true });
   const matWall = new THREE.MeshLambertMaterial({ color: 0x3b4252, flatShading: true });
@@ -104,17 +178,14 @@ function init3D() {
   const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x5ad1ff, flatShading: true });
   const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xff6fae, flatShading: true });
 
-  // ====== FLOOR ======
   const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 10), matFloor);
   floor.position.y = -0.1;
   scene.add(floor);
 
-  // ====== PLAYER ======
   player = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), matPlayer);
   player.position.set(0, 0.5, 0);
   scene.add(player);
 
-  // ====== PORTALS ======
   portal1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), matPortal1);
   portal1.rotation.x = -Math.PI / 2;
   portal1.position.set(2.5, 0.01, -2.5);
@@ -125,7 +196,6 @@ function init3D() {
   portal2.position.set(-2.5, 0.01, -2.5);
   scene.add(portal2);
 
-  // ====== WALLS ======
   for (let i = -5; i <= 5; i++) {
     const w1 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
     w1.position.set(i, 0.5, -5);
@@ -145,7 +215,6 @@ function init3D() {
     scene.add(w4);
   }
 
-  // ====== PILLARS ======
   const pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), matPillar);
   pillar1.position.set(-2, 1.5, -2);
   scene.add(pillar1);
@@ -154,17 +223,14 @@ function init3D() {
   pillar2.position.set(2, 1.5, 2);
   scene.add(pillar2);
 
-  // ====== TOWER ======
   const tower = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1.5), matTower);
   tower.position.set(-3.5, 2, 3.5);
   scene.add(tower);
 
-  // ====== BRIDGE ======
   const bridge = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), matBridge);
   bridge.position.set(0, 1.5, 0);
   scene.add(bridge);
 
-  // ====== DEBUG CUBE ======
   const debugCube = new THREE.Mesh(
     new THREE.BoxGeometry(0.5, 0.5, 0.5),
     new THREE.MeshLambertMaterial({ color: 0xff0000, flatShading: true })
@@ -186,9 +252,10 @@ function onWindowResize() {
 }
 
 function updatePlayer(delta) {
-  let moveX = 0;
-  let moveZ = 0;
   const speed = baseSpeed * speedMultiplier;
+
+  let moveX = joy.lx * speed;
+  let moveZ = joy.ly * speed;
 
   if (keys["w"] || keys["ArrowUp"]) moveZ -= speed;
   if (keys["s"] || keys["ArrowDown"]) moveZ += speed;
@@ -198,6 +265,10 @@ function updatePlayer(delta) {
   player.position.x += moveX;
   player.position.z += moveZ;
 
+  if ((joy.shakeL || joy.shakeR) && onGround) {
+    velocityY = jumpStrength;
+    onGround = false;
+  }
   if (keys[" "] && onGround) {
     velocityY = jumpStrength;
     onGround = false;
@@ -221,6 +292,22 @@ function updatePlayer(delta) {
     0.15
   );
   camera.lookAt(player.position);
+
+  camera.rotation.y -= joy.rx * 0.05;
+  camera.rotation.x -= joy.ry * 0.03;
+  camera.rotation.x = Math.max(-1, Math.min(1, camera.rotation.x));
+
+  if (joy.home) {
+    camera.position.set(player.position.x + 3, 3, player.position.z + 4);
+    camera.lookAt(player.position);
+  }
+
+  if (joy.zl) {
+    // interact placeholder
+  }
+  if (joy.zr) {
+    // attack placeholder
+  }
 
   const dist1 = player.position.distanceTo(portal1.position);
   const dist2 = player.position.distanceTo(portal2.position);
