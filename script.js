@@ -99,7 +99,7 @@ function placeFigureOnZone(figureId, zoneId) {
   applyPowersFromZones();
 }
 
-// ====== 3D GAME (GORILLA TAG / SPACEOS STYLE) ======
+// ====== 3D GAME ======
 let scene, camera, renderer;
 let player, portal1, portal2;
 let keys = {};
@@ -112,6 +112,8 @@ let jumpStrength = 0.18;
 let canTeleport = false;
 
 function init3D() {
+  console.log("init3D gestart");
+
   scene = new THREE.Scene();
   scene.background = new THREE.Color(0x1d2333);
   scene.fog = new THREE.Fog(0x1d2333, 8, 25);
@@ -127,12 +129,14 @@ function init3D() {
   renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
+
+  // BELANGRIJK: renderer toevoegen
   document.body.appendChild(renderer.domElement);
 
   const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
   scene.add(light);
 
-  // ====== MATERIALS (flat shading) ======
+  // ====== MATERIALS ======
   const matFloor = new THREE.MeshLambertMaterial({ color: 0x1b1f2b, flatShading: true });
   const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffe74c, flatShading: true });
   const matWall = new THREE.MeshLambertMaterial({ color: 0x3b4252, flatShading: true });
@@ -223,6 +227,14 @@ function init3D() {
   bridge.position.set(0, 1.5, 0);
   scene.add(bridge);
 
+  // ====== FALLBACK CUBE (voor debug) ======
+  const debugCube = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 0.5, 0.5),
+    new THREE.MeshLambertMaterial({ color: 0xff0000, flatShading: true })
+  );
+  debugCube.position.set(0, 2, 0);
+  scene.add(debugCube);
+
   window.addEventListener("resize", onWindowResize);
   window.addEventListener("keydown", (e) => (keys[e.key] = true));
   window.addEventListener("keyup", (e) => (keys[e.key] = false));
@@ -263,7 +275,6 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  // ====== CAMERA (Gorilla Tag style) ======
   camera.position.lerp(
     new THREE.Vector3(
       player.position.x + 2.5,
@@ -274,7 +285,6 @@ function updatePlayer(delta) {
   );
   camera.lookAt(player.position);
 
-  // ====== PORTAL TELEPORT ======
   const dist1 = player.position.distanceTo(portal1.position);
   const dist2 = player.position.distanceTo(portal2.position);
 
