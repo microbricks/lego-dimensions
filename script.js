@@ -99,9 +99,9 @@ function placeFigureOnZone(figureId, zoneId) {
   applyPowersFromZones();
 }
 
-// ====== 3D GAME (THREE.JS) ======
+// ====== 3D GAME (GORILLA TAG / SPACEOS STYLE) ======
 let scene, camera, renderer;
-let player, floor, portal1, portal2;
+let player, portal1, portal2;
 let keys = {};
 let velocityY = 0;
 let onGround = true;
@@ -113,94 +113,93 @@ let canTeleport = false;
 
 function init3D() {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x050509);
+  scene.background = new THREE.Color(0x1d2333);
+  scene.fog = new THREE.Fog(0x1d2333, 8, 25);
 
   camera = new THREE.PerspectiveCamera(
-    60,
+    70,
     window.innerWidth / window.innerHeight,
     0.1,
     100
   );
   camera.position.set(0, 3, 6);
-  camera.lookAt(0, 0, 0);
 
-  renderer = new THREE.WebGLRenderer({ antialias: true });
+  renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
   document.body.appendChild(renderer.domElement);
 
-  const light = new THREE.DirectionalLight(0xffffff, 1);
-  light.position.set(3, 5, 2);
+  const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
   scene.add(light);
 
-  const ambient = new THREE.AmbientLight(0x404040);
-  scene.add(ambient);
+  // ====== MATERIALS (flat shading) ======
+  const matFloor = new THREE.MeshLambertMaterial({ color: 0x1b1f2b, flatShading: true });
+  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffe74c, flatShading: true });
+  const matWall = new THREE.MeshLambertMaterial({ color: 0x3b4252, flatShading: true });
+  const matPillar = new THREE.MeshLambertMaterial({ color: 0x4c566a, flatShading: true });
+  const matTower = new THREE.MeshLambertMaterial({ color: 0x434c5e, flatShading: true });
+  const matBridge = new THREE.MeshLambertMaterial({ color: 0xa36a4f, flatShading: true });
+  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x5ad1ff, flatShading: true });
+  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xff6fae, flatShading: true });
 
-  // Vloer
-  const floorGeo = new THREE.PlaneGeometry(10, 10);
-  const floorMat = new THREE.MeshStandardMaterial({
-    color: 0x222831,
-    side: THREE.DoubleSide
-  });
-  floor = new THREE.Mesh(floorGeo, floorMat);
-  floor.rotation.x = -Math.PI / 2;
+  // ====== FLOOR ======
+  const floor = new THREE.Mesh(
+    new THREE.BoxGeometry(10, 0.2, 10),
+    matFloor
+  );
+  floor.position.y = -0.1;
   scene.add(floor);
 
-  // Speler
-  const playerGeo = new THREE.BoxGeometry(0.5, 1, 0.5);
-  const playerMat = new THREE.MeshStandardMaterial({ color: 0xffeb3b });
-  player = new THREE.Mesh(playerGeo, playerMat);
+  // ====== PLAYER ======
+  player = new THREE.Mesh(
+    new THREE.BoxGeometry(0.5, 1, 0.5),
+    matPlayer
+  );
   player.position.set(0, 0.5, 0);
   scene.add(player);
 
-  // Portal 1
-  const portalGeo = new THREE.CylinderGeometry(0.6, 0.6, 0.1, 32);
-  const portalMat = new THREE.MeshStandardMaterial({
-    color: 0x00bcd4,
-    emissive: 0x0097a7,
-    emissiveIntensity: 0.8
-  });
-  portal1 = new THREE.Mesh(portalGeo, portalMat);
+  // ====== PORTALS ======
+  portal1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
+    matPortal1
+  );
   portal1.rotation.x = -Math.PI / 2;
   portal1.position.set(2.5, 0.01, -2.5);
   scene.add(portal1);
 
-  // Portal 2
-  const portal2Mat = new THREE.MeshStandardMaterial({
-    color: 0xff4081,
-    emissive: 0xf50057,
-    emissiveIntensity: 0.8
-  });
-  portal2 = new THREE.Mesh(portalGeo, portal2Mat);
+  portal2 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
+    matPortal2
+  );
   portal2.rotation.x = -Math.PI / 2;
   portal2.position.set(-2.5, 0.01, -2.5);
   scene.add(portal2);
 
-  // Muren rondom
-  const wallMat = new THREE.MeshStandardMaterial({ color: 0x37474f });
+  // ====== WALLS ======
   for (let i = -5; i <= 5; i++) {
-    const wall1 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), wallMat);
-    wall1.position.set(i, 0.5, -5);
-    scene.add(wall1);
+    const w1 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
+    w1.position.set(i, 0.5, -5);
+    scene.add(w1);
 
-    const wall2 = wall1.clone();
-    wall2.position.set(i, 0.5, 5);
-    scene.add(wall2);
+    const w2 = w1.clone();
+    w2.position.set(i, 0.5, 5);
+    scene.add(w2);
   }
   for (let i = -5; i <= 5; i++) {
-    const wall3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), wallMat);
-    wall3.position.set(-5, 0.5, i);
-    scene.add(wall3);
+    const w3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
+    w3.position.set(-5, 0.5, i);
+    scene.add(w3);
 
-    const wall4 = wall3.clone();
-    wall4.position.set(5, 0.5, i);
-    scene.add(wall4);
+    const w4 = w3.clone();
+    w4.position.set(5, 0.5, i);
+    scene.add(w4);
   }
 
-  // Pilaren
-  const pillarGeo = new THREE.CylinderGeometry(0.4, 0.4, 3, 16);
-  const pillarMat = new THREE.MeshStandardMaterial({ color: 0x546e7a });
-
-  const pillar1 = new THREE.Mesh(pillarGeo, pillarMat);
+  // ====== PILLARS ======
+  const pillar1 = new THREE.Mesh(
+    new THREE.CylinderGeometry(0.4, 0.4, 3, 8),
+    matPillar
+  );
   pillar1.position.set(-2, 1.5, -2);
   scene.add(pillar1);
 
@@ -208,19 +207,19 @@ function init3D() {
   pillar2.position.set(2, 1.5, 2);
   scene.add(pillar2);
 
-  // Toren
-  const towerGeo = new THREE.BoxGeometry(1.5, 4, 1.5);
-  const towerMat = new THREE.MeshStandardMaterial({ color: 0x455a64 });
-
-  const tower = new THREE.Mesh(towerGeo, towerMat);
+  // ====== TOWER ======
+  const tower = new THREE.Mesh(
+    new THREE.BoxGeometry(1.5, 4, 1.5),
+    matTower
+  );
   tower.position.set(-3.5, 2, 3.5);
   scene.add(tower);
 
-  // Brug (zwevend platform)
-  const bridgeGeo = new THREE.BoxGeometry(4, 0.3, 1);
-  const bridgeMat = new THREE.MeshStandardMaterial({ color: 0x8d6e63 });
-
-  const bridge = new THREE.Mesh(bridgeGeo, bridgeMat);
+  // ====== BRIDGE ======
+  const bridge = new THREE.Mesh(
+    new THREE.BoxGeometry(4, 0.3, 1),
+    matBridge
+  );
   bridge.position.set(0, 1.5, 0);
   scene.add(bridge);
 
@@ -264,20 +263,27 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  camera.position.x = player.position.x + 3;
-  camera.position.z = player.position.z + 4;
+  // ====== CAMERA (Gorilla Tag style) ======
+  camera.position.lerp(
+    new THREE.Vector3(
+      player.position.x + 2.5,
+      player.position.y + 2.0,
+      player.position.z + 3.5
+    ),
+    0.15
+  );
   camera.lookAt(player.position);
 
-  // Portal interactie
+  // ====== PORTAL TELEPORT ======
   const dist1 = player.position.distanceTo(portal1.position);
   const dist2 = player.position.distanceTo(portal2.position);
 
   if (canTeleport) {
     if (dist1 < 0.8) {
-      player.position.set(-3.5, 0.5, 3.5); // naar toren
+      player.position.set(-3.5, 0.5, 3.5);
     }
     if (dist2 < 0.8) {
-      player.position.set(3.5, 0.5, -3.5); // andere hoek
+      player.position.set(3.5, 0.5, -3.5);
     }
   }
 
@@ -295,7 +301,7 @@ function animate(time) {
   renderer.render(scene, camera);
 }
 
-// Powers uit zones toepassen
+// ====== POWERS ======
 function applyPowersFromZones() {
   speedMultiplier = 1;
   jumpStrength = 0.18;
@@ -305,15 +311,9 @@ function applyPowersFromZones() {
     .filter(Boolean)
     .map((id) => figures[id].power);
 
-  if (activePowers.includes("speed")) {
-    speedMultiplier = 2;
-  }
-  if (activePowers.includes("jump")) {
-    jumpStrength = 0.28;
-  }
-  if (activePowers.includes("teleport")) {
-    canTeleport = true;
-  }
+  if (activePowers.includes("speed")) speedMultiplier = 2;
+  if (activePowers.includes("jump")) jumpStrength = 0.28;
+  if (activePowers.includes("teleport")) canTeleport = true;
 }
 
 // Init
