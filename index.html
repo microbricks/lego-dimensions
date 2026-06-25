@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>LEGO Dimensions + Joy-Con (Gamepad)</title>
+  <title>LEGO Dimensions + Joy-Con (iPad Gamepad API)</title>
   <style>
     :root {
       --blue: #29b6f6;
@@ -20,6 +20,7 @@
       color: #eee;
     }
 
+    /* HUD */
     #hud {
       position: fixed;
       top: 12px;
@@ -44,18 +45,6 @@
       margin-bottom: 4px;
     }
 
-    #hud-sub {
-      font-size: 11px;
-      opacity: 0.85;
-      margin-bottom: 6px;
-    }
-
-    #hud-controls {
-      font-size: 11px;
-      opacity: 0.9;
-      margin-bottom: 6px;
-    }
-
     .hud-btn {
       margin-top: 6px;
       padding: 6px 12px;
@@ -70,15 +59,6 @@
       gap: 6px;
       text-transform: uppercase;
       letter-spacing: 0.08em;
-    }
-
-    .hud-btn span.icon {
-      font-size: 14px;
-    }
-
-    .hud-btn:hover {
-      border-color: var(--blue);
-      box-shadow: 0 0 10px rgba(41, 182, 246, 0.6);
     }
 
     #joycon-status {
@@ -97,6 +77,7 @@
       font-size: 16px;
     }
 
+    /* Toy Pad popup */
     #pad-overlay {
       position: fixed;
       inset: 0;
@@ -118,100 +99,21 @@
       color: #eee;
     }
 
-    #pad-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 10px;
-    }
-
-    #pad-header h2 {
-      margin: 0;
-      font-size: 18px;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      color: var(--blue);
-      text-shadow: 0 0 10px rgba(41, 182, 246, 0.8);
-    }
-
-    #pad-subtitle {
-      font-size: 11px;
-      opacity: 0.8;
-      margin-bottom: 8px;
-    }
-
-    #close-pad-btn {
-      padding: 4px 10px;
-      border-radius: 999px;
-      border: 1px solid rgba(255, 255, 255, 0.18);
-      background: radial-gradient(circle at top, #263238, #111);
-      color: #eee;
-      cursor: pointer;
-      font-size: 11px;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-    }
-
-    #close-pad-btn:hover {
-      border-color: var(--purple);
-      box-shadow: 0 0 10px rgba(171, 71, 188, 0.7);
-    }
-
-    .row {
-      display: flex;
-      gap: 10px;
-      flex-wrap: wrap;
-      justify-content: center;
-      margin-bottom: 10px;
-    }
-
     .figure {
       padding: 8px 12px;
       border-radius: 12px;
       border: 2px solid rgba(255, 255, 255, 0.18);
       background: radial-gradient(circle at top, #1a237e, #0c1020);
       cursor: pointer;
-      user-select: none;
       font-size: 12px;
-      transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s, background 0.1s;
-      color: #eee;
       min-width: 90px;
       text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-
-    .figure::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      background: radial-gradient(circle at top, rgba(255, 255, 255, 0.18), transparent 60%);
-      opacity: 0;
-      transition: opacity 0.15s;
-      pointer-events: none;
-    }
-
-    .figure:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 0 12px rgba(255, 255, 255, 0.25);
-      border-color: var(--blue);
-    }
-
-    .figure:hover::after {
-      opacity: 1;
+      transition: 0.15s;
     }
 
     .figure.active {
       border-color: var(--yellow);
       box-shadow: 0 0 16px rgba(255, 214, 0, 0.8);
-      background: radial-gradient(circle at top, #ffeb3b, #0c1020);
-    }
-
-    .pad {
-      display: flex;
-      gap: 14px;
-      justify-content: center;
-      margin-top: 6px;
     }
 
     .zone {
@@ -223,69 +125,40 @@
       display: flex;
       align-items: center;
       justify-content: center;
-      color: #bbb;
-      font-size: 12px;
-      text-align: center;
       cursor: pointer;
-      transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s, background 0.15s;
       position: relative;
-      overflow: hidden;
+      transition: 0.15s;
     }
 
-    .zone:hover {
-      transform: translateY(-2px);
+    .zone.has-figure {
       border-color: var(--blue);
-      box-shadow: 0 0 14px rgba(41, 182, 246, 0.7);
+      box-shadow: 0 0 16px rgba(41, 182, 246, 0.6);
     }
 
-    .zone-label {
-      position: absolute;
-      bottom: 4px;
-      font-size: 10px;
-      text-transform: uppercase;
-      letter-spacing: 0.12em;
-      opacity: 0.75;
-    }
-
-    .zone-glow {
-      position: absolute;
-      inset: 0;
-      opacity: 0;
-      pointer-events: none;
-      mix-blend-mode: screen;
-      transition: opacity 0.2s;
-    }
-
-    .zone.has-figure .zone-glow {
-      opacity: 1;
-    }
-
-    #pad-output {
-      margin-top: 10px;
+    /* Debug overlay */
+    #debug-box {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      padding: 10px;
+      background: rgba(0,0,0,0.6);
+      color: #0ff;
       font-size: 12px;
-      background: rgba(5, 8, 20, 0.9);
-      border-radius: 10px;
-      border: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 8px;
-      text-align: center;
-      white-space: pre-line;
+      z-index: 9999;
+      white-space: pre;
+      border: 1px solid #0ff;
+      border-radius: 8px;
+      max-height: 40vh;
+      overflow-y: auto;
     }
   </style>
 </head>
 <body>
+
   <div id="hud">
     <div id="hud-title">LEGO Dimensions</div>
-    <div id="hud-sub">Mini 3D wereld + Joy-Con / Gamepad</div>
-    <div id="hud-controls">
-      • WASD / pijltjes: lopen<br>
-      • Spatie / A / SL / SR: springen<br>
-      • Linker stick: bewegen<br>
-      • Rechter stick: camera
-    </div>
-    <button id="open-pad-btn" class="hud-btn">
-      <span class="icon">🌀</span>
-      <span>Toy Pad openen</span>
-    </button>
+    <button id="open-pad-btn" class="hud-btn">🌀 Toy Pad</button>
+
     <div id="joycon-status">
       <span id="joycon-icon">🟥</span>
       <span id="joycon-text">Gamepad: geen verbonden</span>
@@ -294,37 +167,22 @@
 
   <div id="pad-overlay">
     <div id="pad-window">
-      <div id="pad-header">
-        <h2>TOY PAD</h2>
-        <button id="close-pad-btn">Sluiten</button>
-      </div>
-      <div id="pad-subtitle">
-        Kies een figuur en plaats hem op een zone om powers te activeren.
-      </div>
+      <h2>Toy Pad</h2>
+      <button id="close-pad-btn">Sluiten</button>
 
       <div class="row" id="figures"></div>
 
       <div class="pad">
-        <div class="zone" data-zone="left">
-          <div class="zone-glow"></div>
-          <span>Leeg</span>
-          <div class="zone-label">Links</div>
-        </div>
-        <div class="zone" data-zone="middle">
-          <div class="zone-glow"></div>
-          <span>Leeg</span>
-          <div class="zone-label">Midden</div>
-        </div>
-        <div class="zone" data-zone="right">
-          <div class="zone-glow"></div>
-          <span>Leeg</span>
-          <div class="zone-label">Rechts</div>
-        </div>
+        <div class="zone" data-zone="left"><span>Leeg</span></div>
+        <div class="zone" data-zone="middle"><span>Leeg</span></div>
+        <div class="zone" data-zone="right"><span>Leeg</span></div>
       </div>
 
       <div id="pad-output">Nog geen figuur geplaatst.</div>
     </div>
   </div>
+
+  <div id="debug-box">Joy-Con debug...</div>
 
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
   <script src="script.js"></script>
