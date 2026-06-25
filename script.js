@@ -1,23 +1,8 @@
 // ====== TOY PAD LOGICA ======
 const figures = {
-  batman: {
-    name: "Batman",
-    power: "speed",
-    description: "Verhoogt loopsnelheid.",
-    color: "#00bcd4"
-  },
-  gandalf: {
-    name: "Gandalf",
-    power: "teleport",
-    description: "Teleporteert naar portals / toren.",
-    color: "#9c27b0"
-  },
-  robot: {
-    name: "Robot",
-    power: "jump",
-    description: "Geeft extra hoge sprong.",
-    color: "#4caf50"
-  }
+  batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#00bcd4" },
+  gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#9c27b0" },
+  robot: { name: "Robot", power: "jump", description: "Geeft extra hoge sprong.", color: "#4caf50" }
 };
 
 let selectedFigureId = null;
@@ -29,13 +14,8 @@ const closePadBtn = document.getElementById("close-pad-btn");
 const figuresContainer = document.getElementById("figures");
 const padOutput = document.getElementById("pad-output");
 
-openPadBtn.addEventListener("click", () => {
-  padOverlay.style.display = "flex";
-});
-
-closePadBtn.addEventListener("click", () => {
-  padOverlay.style.display = "none";
-});
+openPadBtn.onclick = () => padOverlay.style.display = "flex";
+closePadBtn.onclick = () => padOverlay.style.display = "none";
 
 function renderFigures() {
   figuresContainer.innerHTML = "";
@@ -46,34 +26,23 @@ function renderFigures() {
     btn.style.borderColor = fig.color;
     btn.style.color = fig.color;
     btn.dataset.id = id;
-
-    btn.addEventListener("click", () => {
-      selectFigure(id);
-    });
-
+    btn.onclick = () => selectFigure(id);
     figuresContainer.appendChild(btn);
   });
 }
 
 function selectFigure(id) {
   selectedFigureId = id;
-  document.querySelectorAll(".figure").forEach((el) => {
-    el.classList.toggle("active", el.dataset.id === id);
-  });
+  document.querySelectorAll(".figure").forEach(el => el.classList.toggle("active", el.dataset.id === id));
   const fig = figures[id];
-  padOutput.textContent =
-    `${fig.name} geselecteerd.\nPower: ${fig.power}\n${fig.description}\nKlik nu op een zone.`;
+  padOutput.textContent = `${fig.name} geselecteerd.\nPower: ${fig.power}\n${fig.description}\nKlik nu op een zone.`;
 }
 
-document.querySelectorAll(".zone").forEach((zoneEl) => {
-  zoneEl.addEventListener("click", () => {
-    const zoneId = zoneEl.dataset.zone;
-    if (!selectedFigureId) {
-      padOutput.textContent = "Selecteer eerst een figuur.";
-      return;
-    }
-    placeFigureOnZone(selectedFigureId, zoneId);
-  });
+document.querySelectorAll(".zone").forEach(zoneEl => {
+  zoneEl.onclick = () => {
+    if (!selectedFigureId) return padOutput.textContent = "Selecteer eerst een figuur.";
+    placeFigureOnZone(selectedFigureId, zoneEl.dataset.zone);
+  };
 });
 
 function placeFigureOnZone(figureId, zoneId) {
@@ -86,15 +55,11 @@ function placeFigureOnZone(figureId, zoneId) {
 
   label.textContent = fig.name;
   zoneEl.classList.add("has-figure");
-  glow.style.background = `
-    radial-gradient(circle at 30% 30%, ${fig.color}, transparent 60%)
-  `;
+  glow.style.background = `radial-gradient(circle at 30% 30%, ${fig.color}, transparent 60%)`;
   zoneEl.style.borderColor = fig.color;
   zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
 
-  padOutput.textContent =
-    `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\n` +
-    `Power: ${fig.power}\n${fig.description}`;
+  padOutput.textContent = `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\nPower: ${fig.power}\n${fig.description}`;
 
   applyPowersFromZones();
 }
@@ -118,19 +83,12 @@ function init3D() {
   scene.background = new THREE.Color(0x1d2333);
   scene.fog = new THREE.Fog(0x1d2333, 8, 25);
 
-  camera = new THREE.PerspectiveCamera(
-    70,
-    window.innerWidth / window.innerHeight,
-    0.1,
-    100
-  );
+  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(0, 3, 6);
 
   renderer = new THREE.WebGLRenderer({ antialias: false });
   renderer.setSize(window.innerWidth, window.innerHeight);
   renderer.setPixelRatio(window.devicePixelRatio);
-
-  // BELANGRIJK: renderer toevoegen
   document.body.appendChild(renderer.domElement);
 
   const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
@@ -147,34 +105,22 @@ function init3D() {
   const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xff6fae, flatShading: true });
 
   // ====== FLOOR ======
-  const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(10, 0.2, 10),
-    matFloor
-  );
+  const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 10), matFloor);
   floor.position.y = -0.1;
   scene.add(floor);
 
   // ====== PLAYER ======
-  player = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 1, 0.5),
-    matPlayer
-  );
+  player = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), matPlayer);
   player.position.set(0, 0.5, 0);
   scene.add(player);
 
   // ====== PORTALS ======
-  portal1 = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
-    matPortal1
-  );
+  portal1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), matPortal1);
   portal1.rotation.x = -Math.PI / 2;
   portal1.position.set(2.5, 0.01, -2.5);
   scene.add(portal1);
 
-  portal2 = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16),
-    matPortal2
-  );
+  portal2 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), matPortal2);
   portal2.rotation.x = -Math.PI / 2;
   portal2.position.set(-2.5, 0.01, -2.5);
   scene.add(portal2);
@@ -200,10 +146,7 @@ function init3D() {
   }
 
   // ====== PILLARS ======
-  const pillar1 = new THREE.Mesh(
-    new THREE.CylinderGeometry(0.4, 0.4, 3, 8),
-    matPillar
-  );
+  const pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), matPillar);
   pillar1.position.set(-2, 1.5, -2);
   scene.add(pillar1);
 
@@ -212,22 +155,16 @@ function init3D() {
   scene.add(pillar2);
 
   // ====== TOWER ======
-  const tower = new THREE.Mesh(
-    new THREE.BoxGeometry(1.5, 4, 1.5),
-    matTower
-  );
+  const tower = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1.5), matTower);
   tower.position.set(-3.5, 2, 3.5);
   scene.add(tower);
 
   // ====== BRIDGE ======
-  const bridge = new THREE.Mesh(
-    new THREE.BoxGeometry(4, 0.3, 1),
-    matBridge
-  );
+  const bridge = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), matBridge);
   bridge.position.set(0, 1.5, 0);
   scene.add(bridge);
 
-  // ====== FALLBACK CUBE (voor debug) ======
+  // ====== DEBUG CUBE ======
   const debugCube = new THREE.Mesh(
     new THREE.BoxGeometry(0.5, 0.5, 0.5),
     new THREE.MeshLambertMaterial({ color: 0xff0000, flatShading: true })
@@ -235,9 +172,9 @@ function init3D() {
   debugCube.position.set(0, 2, 0);
   scene.add(debugCube);
 
-  window.addEventListener("resize", onWindowResize);
-  window.addEventListener("keydown", (e) => (keys[e.key] = true));
-  window.addEventListener("keyup", (e) => (keys[e.key] = false));
+  window.onresize = onWindowResize;
+  window.onkeydown = e => keys[e.key] = true;
+  window.onkeyup = e => keys[e.key] = false;
 
   animate();
 }
@@ -253,10 +190,10 @@ function updatePlayer(delta) {
   let moveZ = 0;
   const speed = baseSpeed * speedMultiplier;
 
-  if (keys["w"] || keys["W"] || keys["ArrowUp"]) moveZ -= speed;
-  if (keys["s"] || keys["S"] || keys["ArrowDown"]) moveZ += speed;
-  if (keys["a"] || keys["A"] || keys["ArrowLeft"]) moveX -= speed;
-  if (keys["d"] || keys["D"] || keys["ArrowRight"]) moveX += speed;
+  if (keys["w"] || keys["ArrowUp"]) moveZ -= speed;
+  if (keys["s"] || keys["ArrowDown"]) moveZ += speed;
+  if (keys["a"] || keys["ArrowLeft"]) moveX -= speed;
+  if (keys["d"] || keys["ArrowRight"]) moveX += speed;
 
   player.position.x += moveX;
   player.position.z += moveZ;
@@ -289,12 +226,8 @@ function updatePlayer(delta) {
   const dist2 = player.position.distanceTo(portal2.position);
 
   if (canTeleport) {
-    if (dist1 < 0.8) {
-      player.position.set(-3.5, 0.5, 3.5);
-    }
-    if (dist2 < 0.8) {
-      player.position.set(3.5, 0.5, -3.5);
-    }
+    if (dist1 < 0.8) player.position.set(-3.5, 0.5, 3.5);
+    if (dist2 < 0.8) player.position.set(3.5, 0.5, -3.5);
   }
 
   portal1.rotation.y += 0.02;
@@ -319,7 +252,7 @@ function applyPowersFromZones() {
 
   const activePowers = Object.values(zoneState)
     .filter(Boolean)
-    .map((id) => figures[id].power);
+    .map(id => figures[id].power);
 
   if (activePowers.includes("speed")) speedMultiplier = 2;
   if (activePowers.includes("jump")) jumpStrength = 0.28;
