@@ -1,1 +1,286 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <title>Mini LEGO Dimensions Demo</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      background: #111;
+      color: #eee;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+      margin: 0;
+      padding: 20px;
+    }
 
+    h1 {
+      margin: 0;
+      font-size: 24px;
+      text-align: center;
+    }
+
+    .row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    /* Figuren */
+    .figure {
+      padding: 10px 14px;
+      border-radius: 8px;
+      border: 2px solid #555;
+      background: #222;
+      cursor: pointer;
+      user-select: none;
+      transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
+    }
+
+    .figure:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+      border-color: #fff;
+    }
+
+    .figure.active {
+      border-color: #0ff;
+      box-shadow: 0 0 12px rgba(0, 255, 255, 0.7);
+    }
+
+    /* Toy Pad */
+    .pad {
+      display: flex;
+      gap: 16px;
+      margin-top: 10px;
+    }
+
+    .zone {
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      border: 3px solid #555;
+      background: radial-gradient(circle at 30% 30%, #333, #000);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #aaa;
+      font-size: 14px;
+      text-align: center;
+      cursor: pointer;
+      transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .zone:hover {
+      transform: translateY(-2px);
+      border-color: #888;
+    }
+
+    .zone-label {
+      position: absolute;
+      bottom: 6px;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      opacity: 0.7;
+    }
+
+    /* Glow overlay */
+    .zone-glow {
+      position: absolute;
+      inset: 0;
+      opacity: 0;
+      pointer-events: none;
+      mix-blend-mode: screen;
+      transition: opacity 0.2s;
+    }
+
+    .zone.has-figure .zone-glow {
+      opacity: 1;
+    }
+
+    /* Output */
+    #output {
+      min-height: 40px;
+      padding: 10px 14px;
+      border-radius: 8px;
+      background: #181818;
+      border: 1px solid #333;
+      font-size: 14px;
+      max-width: 500px;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    small {
+      opacity: 0.7;
+      font-size: 11px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Mini LEGO Dimensions Demo</h1>
+  <small>Klik eerst een figuur, daarna een zone op de Toy Pad.</small>
+
+  <!-- Figuren -->
+  <div class="row" id="figures">
+    <!-- Wordt gevuld door JS -->
+  </div>
+
+  <!-- Toy Pad -->
+  <div class="pad">
+    <div class="zone" data-zone="left">
+      <div class="zone-glow" id="glow-left"></div>
+      <span>Leeg</span>
+      <div class="zone-label">Links</div>
+    </div>
+    <div class="zone" data-zone="middle">
+      <div class="zone-glow" id="glow-middle"></div>
+      <span>Leeg</span>
+      <div class="zone-label">Midden</div>
+    </div>
+    <div class="zone" data-zone="right">
+      <div class="zone-glow" id="glow-right"></div>
+      <span>Leeg</span>
+      <div class="zone-label">Rechts</div>
+    </div>
+  </div>
+
+  <!-- Output -->
+  <div id="output">Nog geen figuur geplaatst.</div>
+
+  <script>
+    // Figuren-definitie (jij kunt dit uitbreiden)
+    const figures = {
+      batman: {
+        name: "Batman",
+        power: "Vechtkracht",
+        world: "Gotham City",
+        color: "#00bcd4"
+      },
+      gandalf: {
+        name: "Gandalf",
+        power: "Magie",
+        world: "Middle-earth",
+        color: "#9c27b0"
+      },
+      wyldstyle: {
+        name: "Wyldstyle",
+        power: "Bouwen",
+        world: "LEGO City",
+        color: "#ff9800"
+      },
+      robot: {
+        name: "Robot",
+        power: "Hack & Scan",
+        world: "Space Station",
+        color: "#4caf50"
+      }
+    };
+
+    let selectedFigureId = null;
+    const zoneState = {
+      left: null,
+      middle: null,
+      right: null
+    };
+
+    const figuresContainer = document.getElementById("figures");
+    const output = document.getElementById("output");
+
+    // Figuren-knoppen genereren
+    function renderFigures() {
+      figuresContainer.innerHTML = "";
+      Object.entries(figures).forEach(([id, fig]) => {
+        const btn = document.createElement("button");
+        btn.className = "figure";
+        btn.textContent = fig.name;
+        btn.style.borderColor = fig.color;
+        btn.style.color = fig.color;
+        btn.dataset.id = id;
+
+        btn.addEventListener("click", () => {
+          selectFigure(id);
+        });
+
+        figuresContainer.appendChild(btn);
+      });
+    }
+
+    function selectFigure(id) {
+      selectedFigureId = id;
+
+      // Active class updaten
+      document.querySelectorAll(".figure").forEach((el) => {
+        el.classList.toggle("active", el.dataset.id === id);
+      });
+
+      const fig = figures[id];
+      output.textContent =
+        `${fig.name} geselecteerd.\nKlik nu op een zone op de Toy Pad.`;
+    }
+
+    // Zone klik-logica
+    document.querySelectorAll(".zone").forEach((zoneEl) => {
+      zoneEl.addEventListener("click", () => {
+        const zoneId = zoneEl.dataset.zone;
+        if (!selectedFigureId) {
+          output.textContent = "Selecteer eerst een figuur.";
+          return;
+        }
+        placeFigureOnZone(selectedFigureId, zoneId);
+      });
+    });
+
+    function placeFigureOnZone(figureId, zoneId) {
+      const fig = figures[figureId];
+      zoneState[zoneId] = figureId;
+
+      // Zone element
+      const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
+      const label = zoneEl.querySelector("span");
+      const glow = zoneEl.querySelector(".zone-glow");
+
+      // Tekst updaten
+      label.textContent = fig.name;
+      zoneEl.classList.add("has-figure");
+
+      // Glow kleur
+      glow.style.background = `
+        radial-gradient(circle at 30% 30%, ${fig.color}, transparent 60%)
+      `;
+      zoneEl.style.borderColor = fig.color;
+      zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
+
+      // Output-tekst
+      output.textContent =
+        `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\n` +
+        `Power: ${fig.power}\n` +
+        `Wereld: ${fig.world}`;
+
+      // Hier kun je "portals", "levels" of andere acties koppelen
+      triggerGameEvent(fig, zoneId);
+    }
+
+    // Hier kun je later logica toevoegen (andere pagina, animatie, etc.)
+    function triggerGameEvent(fig, zoneId) {
+      console.log(
+        `EVENT: ${fig.name} op ${zoneId} → ${fig.power} in ${fig.world}`
+      );
+      // Voor nu alleen console-log.
+      // Later kun je hier:
+      // - een andere scene laden
+      // - een animatie starten
+      // - een geluid afspelen
+    }
+
+    // Init
+    renderFigures();
+  </script>
+</body>
+</html>
