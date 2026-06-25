@@ -1,6 +1,6 @@
-/* ============================
+/* ============================================================
    TOY PAD
-============================ */
+============================================================ */
 const figures = {
   batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#29b6f6" },
   gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#ab47bc" },
@@ -58,11 +58,9 @@ function placeFigureOnZone(figureId, zoneId) {
 
   const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
   const label = zoneEl.querySelector("span");
-  const glow = zoneEl.querySelector(".zone-glow");
 
   label.textContent = fig.name;
   zoneEl.classList.add("has-figure");
-  glow.style.background = `radial-gradient(circle at 30% 30%, ${fig.color}, transparent 60%)`;
   zoneEl.style.borderColor = fig.color;
   zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
 
@@ -72,9 +70,9 @@ function placeFigureOnZone(figureId, zoneId) {
   applyPowersFromZones();
 }
 
-/* ============================
-   GAMEPAD API (Joy-Con / iPad)
-============================ */
+/* ============================================================
+   GAMEPAD API + JOY-CON AUTO MAPPING + DEBUG
+============================================================ */
 let joy = {
   lx: 0, ly: 0,
   rx: 0, ry: 0,
@@ -86,6 +84,7 @@ let joy = {
 
 const joyIcon = document.getElementById("joycon-icon");
 const joyText = document.getElementById("joycon-text");
+const debugBox = document.getElementById("debug-box");
 
 function updateJoyConStatus() {
   const pads = navigator.getGamepads();
@@ -129,42 +128,54 @@ function readGamepads() {
     return;
   }
 
-  joy.lx = 0; joy.ly = 0;
-  joy.rx = 0; joy.ry = 0;
-  joy.a = false;
-  joy.sl = false; joy.sr = false;
-  joy.zl = false; joy.zr = false;
-  joy.home = false;
+  let debugText = "";
+
+  joy = { lx:0, ly:0, rx:0, ry:0, a:false, sl:false, sr:false, zl:false, zr:false, home:false };
 
   for (const pad of pads) {
     if (!pad) continue;
 
+    debugText += `\n${pad.id}\n`;
+
+    pad.axes.forEach((v, i) => {
+      debugText += `axis[${i}]: ${v.toFixed(2)}\n`;
+    });
+
+    pad.buttons.forEach((b, i) => {
+      debugText += `btn[${i}]: ${b.pressed ? "1" : "0"} `;
+    });
+
+    debugText += "\n----------------------\n";
+
     if (pad.id.includes("Joy-Con (L)")) {
-      joy.lx = pad.axes[0];
-      joy.ly = pad.axes[1];
-      joy.sl = pad.buttons[4]?.pressed;
-      joy.zl = pad.buttons[6]?.pressed;
-      joy.a = pad.buttons[0]?.pressed;
+      joy.lx = pad.axes[0] ?? 0;
+      joy.ly = pad.axes[1] ?? 0;
+
+      joy.a  = pad.buttons[0]?.pressed || false;
+      joy.sl = pad.buttons[4]?.pressed || false;
+      joy.zl = pad.buttons[6]?.pressed || false;
     }
 
     if (pad.id.includes("Joy-Con (R)")) {
-      joy.rx = pad.axes[2] || 0;
-      joy.ry = pad.axes[3] || 0;
-      joy.sr = pad.buttons[5]?.pressed;
-      joy.zr = pad.buttons[7]?.pressed;
-      joy.home = pad.buttons[12]?.pressed;
+      joy.rx = pad.axes[2] ?? pad.axes[0] ?? 0;
+      joy.ry = pad.axes[3] ?? pad.axes[1] ?? 0;
+
+      joy.sr = pad.buttons[5]?.pressed || false;
+      joy.zr = pad.buttons[7]?.pressed || false;
+      joy.home = pad.buttons[12]?.pressed || false;
     }
   }
 
+  debugBox.innerText = debugText;
   updateJoyConStatus();
   requestAnimationFrame(readGamepads);
 }
 
 readGamepads();
 
-/* ============================
+/* ============================================================
    3D GAME (Three.js)
-============================ */
+============================================================ */
 let scene, camera, renderer;
 let player, portal1, portal2;
 let keys = {};
@@ -192,14 +203,14 @@ function init3D() {
   const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
   scene.add(light);
 
-  const matFloor = new THREE.MeshLambertMaterial({ color: 0x111633, flatShading: true });
-  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffd600, flatShading: true });
-  const matWall = new THREE.MeshLambertMaterial({ color: 0x283593, flatShading: true });
-  const matPillar = new THREE.MeshLambertMaterial({ color: 0x3949ab, flatShading: true });
-  const matTower = new THREE.MeshLambertMaterial({ color: 0x1a237e, flatShading: true });
-  const matBridge = new THREE.MeshLambertMaterial({ color: 0xa36a4f, flatShading: true });
-  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x29b6f6, flatShading: true });
-  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xab47bc, flatShading: true });
+  const matFloor = new THREE.MeshLambertMaterial({ color: 0x111633 });
+  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffd600 });
+  const matWall = new THREE.MeshLambertMaterial({ color: 0x283593 });
+  const matPillar = new THREE.MeshLambertMaterial({ color: 0x3949ab });
+  const matTower = new THREE.MeshLambertMaterial({ color: 0x1a237e });
+  const matBridge = new THREE.MeshLambertMaterial({ color: 0xa36a4f });
+  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x29b6f6 });
+  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xab47bc });
 
   const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 10), matFloor);
   floor.position.y = -0.1;
@@ -228,6 +239,7 @@ function init3D() {
     w2.position.set(i, 0.5, 5);
     scene.add(w2);
   }
+
   for (let i = -5; i <= 5; i++) {
     const w3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
     w3.position.set(-5, 0.5, i);
@@ -340,9 +352,9 @@ function animate(time) {
   renderer.render(scene, camera);
 }
 
-/* ============================
+/* ============================================================
    POWERS
-============================ */
+============================================================ */
 function applyPowersFromZones() {
   speedMultiplier = 1;
   jumpStrength = 0.18;
@@ -357,8 +369,8 @@ function applyPowersFromZones() {
   if (activePowers.includes("teleport")) canTeleport = true;
 }
 
-/* ============================
+/* ============================================================
    INIT
-============================ */
+============================================================ */
 renderFigures();
 init3D();
