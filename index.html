@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini 3D LEGO Dimensions</title>
+  <title>Mini 3D LEGO Dimensions + Joy-Con</title>
   <style>
     body {
       margin: 0;
@@ -20,6 +20,7 @@
       background: rgba(0, 0, 0, 0.6);
       padding: 8px 10px;
       border-radius: 8px;
+      z-index: 20;
     }
 
     #open-pad-btn {
@@ -37,7 +38,6 @@
       border-color: #fff;
     }
 
-    /* Toy Pad overlay */
     #pad-overlay {
       position: fixed;
       inset: 0;
@@ -45,7 +45,7 @@
       display: none;
       align-items: center;
       justify-content: center;
-      z-index: 10;
+      z-index: 30;
     }
 
     #pad-window {
@@ -181,13 +181,12 @@
 </head>
 <body>
   <div id="hud">
-    Mini 3D LEGO Dimensions<br>
-    WASD / pijltjes: bewegen<br>
-    Spatie: springen<br>
+    Mini 3D LEGO Dimensions + Joy-Con<br>
+    WASD/pijltjes: bewegen • Spatie: springen<br>
+    J: Joy-Cons koppelen (browser moet WebHID ondersteunen)<br>
     <button id="open-pad-btn">Toy Pad openen</button>
   </div>
 
-  <!-- Toy Pad popup -->
   <div id="pad-overlay">
     <div id="pad-window">
       <div id="pad-header">
@@ -200,17 +199,17 @@
 
       <div class="pad">
         <div class="zone" data-zone="left">
-          <div class="zone-glow" id="glow-left"></div>
+          <div class="zone-glow"></div>
           <span>Leeg</span>
           <div class="zone-label">Links</div>
         </div>
         <div class="zone" data-zone="middle">
-          <div class="zone-glow" id="glow-middle"></div>
+          <div class="zone-glow"></div>
           <span>Leeg</span>
           <div class="zone-label">Midden</div>
         </div>
         <div class="zone" data-zone="right">
-          <div class="zone-glow" id="glow-right"></div>
+          <div class="zone-glow"></div>
           <span>Leeg</span>
           <div class="zone-label">Rechts</div>
         </div>
@@ -220,8 +219,7 @@
     </div>
   </div>
 
-  <!-- Three.js CDN -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
-<script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
