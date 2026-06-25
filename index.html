@@ -2,7 +2,7 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini 3D LEGO Dimensions + Joy-Con</title>
+  <title>Mini 3D LEGO Dimensions + Gamepad</title>
   <style>
     body {
       margin: 0;
@@ -23,7 +23,7 @@
       z-index: 20;
     }
 
-    #open-pad-btn {
+    #hud button {
       margin-top: 6px;
       padding: 6px 10px;
       border-radius: 999px;
@@ -32,10 +32,17 @@
       color: #eee;
       cursor: pointer;
       font-size: 12px;
+      display: block;
     }
 
-    #open-pad-btn:hover {
+    #hud button:hover {
       border-color: #fff;
+    }
+
+    #joycon-status {
+      margin-top: 4px;
+      font-size: 11px;
+      opacity: 0.8;
     }
 
     #pad-overlay {
@@ -181,10 +188,14 @@
 </head>
 <body>
   <div id="hud">
-    Mini 3D LEGO Dimensions + Joy-Con<br>
+    Mini 3D LEGO Dimensions + Gamepad<br>
     WASD/pijltjes: bewegen • Spatie: springen<br>
-    J: Joy-Cons koppelen (browser moet WebHID ondersteunen)<br>
+    Koppel Joy-Cons via iPad Bluetooth, dan:<br>
+    - Linker stick: lopen<br>
+    - Rechter stick: camera<br>
+    - A/SL/SR: springen<br>
     <button id="open-pad-btn">Toy Pad openen</button>
+    <div id="joycon-status">Gamepad: geen verbonden</div>
   </div>
 
   <div id="pad-overlay">
