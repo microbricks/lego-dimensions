@@ -1,10 +1,10 @@
-/* ============================================================
+/* ============================
    TOY PAD
-============================================================ */
+============================ */
 const figures = {
-  batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#00bcd4" },
-  gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#9c27b0" },
-  robot: { name: "Robot", power: "jump", description: "Geeft extra hoge sprong.", color: "#4caf50" }
+  batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#29b6f6" },
+  gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#ab47bc" },
+  robot: { name: "Robot", power: "jump", description: "Geeft extra hoge sprong.", color: "#ffd600" }
 };
 
 let selectedFigureId = null;
@@ -25,9 +25,8 @@ function renderFigures() {
     const btn = document.createElement("button");
     btn.className = "figure";
     btn.textContent = fig.name;
-    btn.style.borderColor = fig.color;
-    btn.style.color = fig.color;
     btn.dataset.id = id;
+    btn.style.borderColor = fig.color;
     btn.onclick = () => selectFigure(id);
     figuresContainer.appendChild(btn);
   });
@@ -73,67 +72,99 @@ function placeFigureOnZone(figureId, zoneId) {
   applyPowersFromZones();
 }
 
-/* ============================================================
-   GAMEPAD API (iPad compatible)
-============================================================ */
-
+/* ============================
+   GAMEPAD API (Joy-Con / iPad)
+============================ */
 let joy = {
   lx: 0, ly: 0,
   rx: 0, ry: 0,
-  a: false, b: false,
-  zl: false, zr: false,
+  a: false,
   sl: false, sr: false,
+  zl: false, zr: false,
   home: false
 };
 
-let connectedPads = [];
+const joyIcon = document.getElementById("joycon-icon");
+const joyText = document.getElementById("joycon-text");
 
-window.addEventListener("gamepadconnected", (e) => {
-  console.log("Gamepad verbonden:", e.gamepad);
-  connectedPads.push(e.gamepad.index);
-});
+function updateJoyConStatus() {
+  const pads = navigator.getGamepads();
+  if (!pads) {
+    joyIcon.textContent = "🟥";
+    joyText.textContent = "Gamepad: niet ondersteund";
+    return;
+  }
 
-window.addEventListener("gamepaddisconnected", (e) => {
-  console.log("Gamepad losgekoppeld:", e.gamepad);
-  connectedPads = connectedPads.filter(i => i !== e.gamepad.index);
-});
+  let left = false;
+  let right = false;
+
+  for (const pad of pads) {
+    if (!pad) continue;
+    if (pad.id.includes("Joy-Con (L)")) left = true;
+    if (pad.id.includes("Joy-Con (R)")) right = true;
+  }
+
+  if (left && right) {
+    joyIcon.textContent = "🟩";
+    joyText.textContent = "Joy-Cons: links + rechts verbonden";
+  } else if (left) {
+    joyIcon.textContent = "🟦";
+    joyText.textContent = "Joy-Con (L) verbonden";
+  } else if (right) {
+    joyIcon.textContent = "🟧";
+    joyText.textContent = "Joy-Con (R) verbonden";
+  } else {
+    joyIcon.textContent = "🟥";
+    joyText.textContent = "Gamepad: geen verbonden";
+  }
+}
+
+window.addEventListener("gamepadconnected", updateJoyConStatus);
+window.addEventListener("gamepaddisconnected", updateJoyConStatus);
 
 function readGamepads() {
   const pads = navigator.getGamepads();
-  if (!pads) return;
+  if (!pads) {
+    requestAnimationFrame(readGamepads);
+    return;
+  }
+
+  joy.lx = 0; joy.ly = 0;
+  joy.rx = 0; joy.ry = 0;
+  joy.a = false;
+  joy.sl = false; joy.sr = false;
+  joy.zl = false; joy.zr = false;
+  joy.home = false;
 
   for (const pad of pads) {
     if (!pad) continue;
 
-    // Joy-Con (L)
     if (pad.id.includes("Joy-Con (L)")) {
       joy.lx = pad.axes[0];
       joy.ly = pad.axes[1];
-
       joy.sl = pad.buttons[4]?.pressed;
       joy.zl = pad.buttons[6]?.pressed;
+      joy.a = pad.buttons[0]?.pressed;
     }
 
-    // Joy-Con (R)
     if (pad.id.includes("Joy-Con (R)")) {
       joy.rx = pad.axes[2] || 0;
       joy.ry = pad.axes[3] || 0;
-
       joy.sr = pad.buttons[5]?.pressed;
       joy.zr = pad.buttons[7]?.pressed;
       joy.home = pad.buttons[12]?.pressed;
     }
   }
 
+  updateJoyConStatus();
   requestAnimationFrame(readGamepads);
 }
 
 readGamepads();
 
-/* ============================================================
+/* ============================
    3D GAME (Three.js)
-============================================================ */
-
+============================ */
 let scene, camera, renderer;
 let player, portal1, portal2;
 let keys = {};
@@ -147,8 +178,8 @@ let canTeleport = false;
 
 function init3D() {
   scene = new THREE.Scene();
-  scene.background = new THREE.Color(0x1d2333);
-  scene.fog = new THREE.Fog(0x1d2333, 8, 25);
+  scene.background = new THREE.Color(0x050814);
+  scene.fog = new THREE.Fog(0x050814, 8, 25);
 
   camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
   camera.position.set(0, 3, 6);
@@ -161,14 +192,14 @@ function init3D() {
   const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
   scene.add(light);
 
-  const matFloor = new THREE.MeshLambertMaterial({ color: 0x1b1f2b, flatShading: true });
-  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffe74c, flatShading: true });
-  const matWall = new THREE.MeshLambertMaterial({ color: 0x3b4252, flatShading: true });
-  const matPillar = new THREE.MeshLambertMaterial({ color: 0x4c566a, flatShading: true });
-  const matTower = new THREE.MeshLambertMaterial({ color: 0x434c5e, flatShading: true });
+  const matFloor = new THREE.MeshLambertMaterial({ color: 0x111633, flatShading: true });
+  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffd600, flatShading: true });
+  const matWall = new THREE.MeshLambertMaterial({ color: 0x283593, flatShading: true });
+  const matPillar = new THREE.MeshLambertMaterial({ color: 0x3949ab, flatShading: true });
+  const matTower = new THREE.MeshLambertMaterial({ color: 0x1a237e, flatShading: true });
   const matBridge = new THREE.MeshLambertMaterial({ color: 0xa36a4f, flatShading: true });
-  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x5ad1ff, flatShading: true });
-  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xff6fae, flatShading: true });
+  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x29b6f6, flatShading: true });
+  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xab47bc, flatShading: true });
 
   const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 10), matFloor);
   floor.position.y = -0.1;
@@ -309,9 +340,9 @@ function animate(time) {
   renderer.render(scene, camera);
 }
 
-/* ============================================================
+/* ============================
    POWERS
-============================================================ */
+============================ */
 function applyPowersFromZones() {
   speedMultiplier = 1;
   jumpStrength = 0.18;
@@ -326,8 +357,8 @@ function applyPowersFromZones() {
   if (activePowers.includes("teleport")) canTeleport = true;
 }
 
-/* ============================================================
+/* ============================
    INIT
-============================================================ */
+============================ */
 renderFigures();
 init3D();
