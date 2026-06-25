@@ -71,8 +71,9 @@ function placeFigureOnZone(figureId, zoneId) {
 }
 
 /* ============================================================
-   GAMEPAD API + JOY-CON AUTO MAPPING + DEBUG
+   GAMEPAD API + JOY-CON AUTO MAPPING (iPad compatible)
 ============================================================ */
+
 let joy = {
   lx: 0, ly: 0,
   rx: 0, ry: 0,
@@ -88,33 +89,24 @@ const debugBox = document.getElementById("debug-box");
 
 function updateJoyConStatus() {
   const pads = navigator.getGamepads();
-  if (!pads) {
-    joyIcon.textContent = "🟥";
-    joyText.textContent = "Gamepad: niet ondersteund";
-    return;
-  }
+  if (!pads) return;
 
-  let left = false;
-  let right = false;
+  let found = false;
 
   for (const pad of pads) {
     if (!pad) continue;
-    if (pad.id.includes("Joy-Con (L)")) left = true;
-    if (pad.id.includes("Joy-Con (R)")) right = true;
+
+    // iPad: "Joy-Con (L/R) Extended Gamepad"
+    if (pad.id.includes("Joy-Con")) {
+      found = true;
+      joyIcon.textContent = "🟩";
+      joyText.textContent = "Joy-Cons verbonden (iPad mode)";
+    }
   }
 
-  if (left && right) {
-    joyIcon.textContent = "🟩";
-    joyText.textContent = "Joy-Cons: links + rechts verbonden";
-  } else if (left) {
-    joyIcon.textContent = "🟦";
-    joyText.textContent = "Joy-Con (L) verbonden";
-  } else if (right) {
-    joyIcon.textContent = "🟧";
-    joyText.textContent = "Joy-Con (R) verbonden";
-  } else {
+  if (!found) {
     joyIcon.textContent = "🟥";
-    joyText.textContent = "Gamepad: geen verbonden";
+    joyText.textContent = "Geen Joy-Cons verbonden";
   }
 }
 
@@ -130,6 +122,7 @@ function readGamepads() {
 
   let debugText = "";
 
+  // Reset
   joy = { lx:0, ly:0, rx:0, ry:0, a:false, sl:false, sr:false, zl:false, zr:false, home:false };
 
   for (const pad of pads) {
@@ -147,20 +140,20 @@ function readGamepads() {
 
     debugText += "\n----------------------\n";
 
-    if (pad.id.includes("Joy-Con (L)")) {
+    if (pad.id.includes("Joy-Con")) {
+      // Linker stick
       joy.lx = pad.axes[0] ?? 0;
       joy.ly = pad.axes[1] ?? 0;
 
+      // Rechter stick
+      joy.rx = pad.axes[2] ?? 0;
+      joy.ry = pad.axes[3] ?? 0;
+
+      // Knoppen
       joy.a  = pad.buttons[0]?.pressed || false;
       joy.sl = pad.buttons[4]?.pressed || false;
-      joy.zl = pad.buttons[6]?.pressed || false;
-    }
-
-    if (pad.id.includes("Joy-Con (R)")) {
-      joy.rx = pad.axes[2] ?? pad.axes[0] ?? 0;
-      joy.ry = pad.axes[3] ?? pad.axes[1] ?? 0;
-
       joy.sr = pad.buttons[5]?.pressed || false;
+      joy.zl = pad.buttons[6]?.pressed || false;
       joy.zr = pad.buttons[7]?.pressed || false;
       joy.home = pad.buttons[12]?.pressed || false;
     }
@@ -293,11 +286,13 @@ function updatePlayer(delta) {
   player.position.x += moveX;
   player.position.z += moveZ;
 
-  if ((joy.a || joy.sl || joy.sr) && onGround) {
-    velocityY = jumpStrength;
-    onGround = false;
-  }
-  if (keys[" "] && onGround) {
+  // Jump: knoppen OF stick omhoog (iPad fix)
+  const jumpPressed =
+    joy.a || joy.sl || joy.sr || joy.zl || joy.zr ||
+    joy.ly < -0.7 || joy.ry < -0.7 ||
+    keys[" "];
+
+  if (jumpPressed && onGround) {
     velocityY = jumpStrength;
     onGround = false;
   }
