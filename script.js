@@ -1,4 +1,6 @@
-// ====== TOY PAD ======
+/* ============================================================
+   TOY PAD
+============================================================ */
 const figures = {
   batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#00bcd4" },
   gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#9c27b0" },
@@ -71,77 +73,67 @@ function placeFigureOnZone(figureId, zoneId) {
   applyPowersFromZones();
 }
 
-// ====== JOY-CON INPUT ======
-let joyconLeft = null;
-let joyconRight = null;
+/* ============================================================
+   GAMEPAD API (iPad compatible)
+============================================================ */
 
 let joy = {
   lx: 0, ly: 0,
   rx: 0, ry: 0,
-  shakeL: false,
-  shakeR: false,
-  zl: false,
-  zr: false,
-  sl: false,
-  sr: false,
+  a: false, b: false,
+  zl: false, zr: false,
+  sl: false, sr: false,
   home: false
 };
 
-async function connectJoyCons() {
-  if (!navigator.hid) {
-    alert("WebHID wordt niet ondersteund in deze browser.");
-    return;
-  }
+let connectedPads = [];
 
-  const devices = await navigator.hid.requestDevice({
-    filters: [{ vendorId: 0x057e }]
-  });
-
-  for (const device of devices) {
-    await device.open();
-
-    if (device.productId === 0x2006) {
-      console.log("Left Joy-Con verbonden");
-      joyconLeft = device;
-    }
-    if (device.productId === 0x2007) {
-      console.log("Right Joy-Con verbonden");
-      joyconRight = device;
-    }
-
-    device.addEventListener("inputreport", handleJoyConInput);
-  }
-}
-
-document.addEventListener("keydown", e => {
-  if (e.key === "j") connectJoyCons();
+window.addEventListener("gamepadconnected", (e) => {
+  console.log("Gamepad verbonden:", e.gamepad);
+  connectedPads.push(e.gamepad.index);
 });
 
-function handleJoyConInput(e) {
-  const data = new Uint8Array(e.data.buffer);
+window.addEventListener("gamepaddisconnected", (e) => {
+  console.log("Gamepad losgekoppeld:", e.gamepad);
+  connectedPads = connectedPads.filter(i => i !== e.gamepad.index);
+});
 
-  if (e.device === joyconLeft) {
-    joy.lx = (data[6] - 128) / 128;
-    joy.ly = (data[7] - 128) / 128;
-    joy.shakeL = data[13] > 200;
-    joy.zl = (data[5] & 0x40) !== 0;
-    joy.sl = (data[5] & 0x01) !== 0;
+function readGamepads() {
+  const pads = navigator.getGamepads();
+  if (!pads) return;
+
+  for (const pad of pads) {
+    if (!pad) continue;
+
+    // Joy-Con (L)
+    if (pad.id.includes("Joy-Con (L)")) {
+      joy.lx = pad.axes[0];
+      joy.ly = pad.axes[1];
+
+      joy.sl = pad.buttons[4]?.pressed;
+      joy.zl = pad.buttons[6]?.pressed;
+    }
+
+    // Joy-Con (R)
+    if (pad.id.includes("Joy-Con (R)")) {
+      joy.rx = pad.axes[2] || 0;
+      joy.ry = pad.axes[3] || 0;
+
+      joy.sr = pad.buttons[5]?.pressed;
+      joy.zr = pad.buttons[7]?.pressed;
+      joy.home = pad.buttons[12]?.pressed;
+    }
   }
 
-  if (e.device === joyconRight) {
-    joy.rx = (data[6] - 128) / 128;
-    joy.ry = (data[7] - 128) / 128;
-    joy.shakeR = data[13] > 200;
-    joy.zr = (data[5] & 0x80) !== 0;
-    joy.sr = (data[5] & 0x02) !== 0;
-    joy.home = (data[4] & 0x10) !== 0;
-  }
-
-  if (joy.sl) padOverlay.style.display = "flex";
-  if (joy.sr) padOverlay.style.display = "none";
+  requestAnimationFrame(readGamepads);
 }
 
-// ====== 3D GAME ======
+readGamepads();
+
+/* ============================================================
+   3D GAME (Three.js)
+============================================================ */
+
 let scene, camera, renderer;
 let player, portal1, portal2;
 let keys = {};
@@ -231,13 +223,6 @@ function init3D() {
   bridge.position.set(0, 1.5, 0);
   scene.add(bridge);
 
-  const debugCube = new THREE.Mesh(
-    new THREE.BoxGeometry(0.5, 0.5, 0.5),
-    new THREE.MeshLambertMaterial({ color: 0xff0000, flatShading: true })
-  );
-  debugCube.position.set(0, 2, 0);
-  scene.add(debugCube);
-
   window.onresize = onWindowResize;
   window.onkeydown = e => keys[e.key] = true;
   window.onkeyup = e => keys[e.key] = false;
@@ -265,7 +250,7 @@ function updatePlayer(delta) {
   player.position.x += moveX;
   player.position.z += moveZ;
 
-  if ((joy.shakeL || joy.shakeR) && onGround) {
+  if ((joy.a || joy.sl || joy.sr) && onGround) {
     velocityY = jumpStrength;
     onGround = false;
   }
@@ -302,13 +287,6 @@ function updatePlayer(delta) {
     camera.lookAt(player.position);
   }
 
-  if (joy.zl) {
-    // interact placeholder
-  }
-  if (joy.zr) {
-    // attack placeholder
-  }
-
   const dist1 = player.position.distanceTo(portal1.position);
   const dist2 = player.position.distanceTo(portal2.position);
 
@@ -331,7 +309,9 @@ function animate(time) {
   renderer.render(scene, camera);
 }
 
-// ====== POWERS ======
+/* ============================================================
+   POWERS
+============================================================ */
 function applyPowersFromZones() {
   speedMultiplier = 1;
   jumpStrength = 0.18;
@@ -346,6 +326,8 @@ function applyPowersFromZones() {
   if (activePowers.includes("teleport")) canTeleport = true;
 }
 
-// Init
+/* ============================================================
+   INIT
+============================================================ */
 renderFigures();
 init3D();
