@@ -2,41 +2,154 @@
 <html lang="nl">
 <head>
   <meta charset="UTF-8" />
-  <title>Mini LEGO Dimensions Demo</title>
+  <title>Mini LEGO Dimensions Game</title>
   <style>
     body {
       font-family: system-ui, sans-serif;
       background: #111;
       color: #eee;
+      margin: 0;
       display: flex;
       flex-direction: column;
       align-items: center;
-      gap: 20px;
-      margin: 0;
       padding: 20px;
+      gap: 16px;
     }
 
     h1 {
       margin: 0;
-      font-size: 24px;
+      font-size: 22px;
       text-align: center;
+    }
+
+    #game-container {
+      position: relative;
+      width: 400px;
+      height: 300px;
+      border-radius: 12px;
+      border: 2px solid #444;
+      background: #222;
+      overflow: hidden;
+    }
+
+    #game-world {
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, #263238, #1b1b1b);
+    }
+
+    .tile {
+      position: absolute;
+      width: 40px;
+      height: 40px;
+      box-sizing: border-box;
+    }
+
+    .tile.wall {
+      background: #37474f;
+    }
+
+    .tile.portal {
+      background: radial-gradient(circle, #00bcd4, #004d40);
+      box-shadow: 0 0 12px #00bcd4;
+    }
+
+    #player {
+      position: absolute;
+      width: 30px;
+      height: 30px;
+      border-radius: 999px;
+      background: #ffeb3b;
+      box-shadow: 0 0 10px #ffeb3b;
+      border: 2px solid #fbc02d;
+      transform: translate(5px, 5px);
+    }
+
+    #hud {
+      margin-top: 8px;
+      font-size: 13px;
+      text-align: center;
+      white-space: pre-line;
+    }
+
+    #open-pad-btn {
+      padding: 8px 14px;
+      border-radius: 999px;
+      border: 1px solid #888;
+      background: #222;
+      color: #eee;
+      cursor: pointer;
+      font-size: 13px;
+    }
+
+    #open-pad-btn:hover {
+      border-color: #fff;
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.3);
+    }
+
+    /* Toy Pad popup */
+    #pad-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.7);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 10;
+    }
+
+    #pad-window {
+      background: #181818;
+      border-radius: 12px;
+      border: 1px solid #444;
+      padding: 16px;
+      width: 420px;
+      max-width: 90vw;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8);
+    }
+
+    #pad-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+
+    #pad-header h2 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    #close-pad-btn {
+      padding: 4px 10px;
+      border-radius: 999px;
+      border: 1px solid #666;
+      background: #222;
+      color: #eee;
+      cursor: pointer;
+      font-size: 11px;
+    }
+
+    #close-pad-btn:hover {
+      border-color: #fff;
     }
 
     .row {
       display: flex;
-      gap: 16px;
+      gap: 10px;
       flex-wrap: wrap;
       justify-content: center;
+      margin-bottom: 10px;
     }
 
-    /* Figuren */
     .figure {
-      padding: 10px 14px;
+      padding: 8px 12px;
       border-radius: 8px;
       border: 2px solid #555;
       background: #222;
       cursor: pointer;
       user-select: none;
+      font-size: 12px;
       transition: transform 0.1s, box-shadow 0.1s, border-color 0.1s;
     }
 
@@ -51,16 +164,16 @@
       box-shadow: 0 0 12px rgba(0, 255, 255, 0.7);
     }
 
-    /* Toy Pad */
     .pad {
       display: flex;
-      gap: 16px;
-      margin-top: 10px;
+      gap: 12px;
+      justify-content: center;
+      margin-top: 6px;
     }
 
     .zone {
-      width: 120px;
-      height: 120px;
+      width: 90px;
+      height: 90px;
       border-radius: 999px;
       border: 3px solid #555;
       background: radial-gradient(circle at 30% 30%, #333, #000);
@@ -68,7 +181,7 @@
       align-items: center;
       justify-content: center;
       color: #aaa;
-      font-size: 14px;
+      font-size: 12px;
       text-align: center;
       cursor: pointer;
       transition: box-shadow 0.15s, border-color 0.15s, transform 0.1s;
@@ -83,14 +196,13 @@
 
     .zone-label {
       position: absolute;
-      bottom: 6px;
-      font-size: 11px;
+      bottom: 4px;
+      font-size: 10px;
       text-transform: uppercase;
       letter-spacing: 1px;
       opacity: 0.7;
     }
 
-    /* Glow overlay */
     .zone-glow {
       position: absolute;
       inset: 0;
@@ -104,96 +216,110 @@
       opacity: 1;
     }
 
-    /* Output */
-    #output {
-      min-height: 40px;
-      padding: 10px 14px;
+    #pad-output {
+      margin-top: 8px;
+      font-size: 12px;
+      background: #101010;
       border-radius: 8px;
-      background: #181818;
       border: 1px solid #333;
-      font-size: 14px;
-      max-width: 500px;
+      padding: 8px;
       text-align: center;
       white-space: pre-line;
-    }
-
-    small {
-      opacity: 0.7;
-      font-size: 11px;
     }
   </style>
 </head>
 <body>
-  <h1>Mini LEGO Dimensions Demo</h1>
-  <small>Klik eerst een figuur, daarna een zone op de Toy Pad.</small>
+  <h1>Mini LEGO Dimensions Game</h1>
 
-  <!-- Figuren -->
-  <div class="row" id="figures">
-    <!-- Wordt gevuld door JS -->
+  <button id="open-pad-btn">Toy Pad openen</button>
+
+  <div id="game-container">
+    <div id="game-world"></div>
+    <div id="player"></div>
   </div>
 
-  <!-- Toy Pad -->
-  <div class="pad">
-    <div class="zone" data-zone="left">
-      <div class="zone-glow" id="glow-left"></div>
-      <span>Leeg</span>
-      <div class="zone-label">Links</div>
-    </div>
-    <div class="zone" data-zone="middle">
-      <div class="zone-glow" id="glow-middle"></div>
-      <span>Leeg</span>
-      <div class="zone-label">Midden</div>
-    </div>
-    <div class="zone" data-zone="right">
-      <div class="zone-glow" id="glow-right"></div>
-      <span>Leeg</span>
-      <div class="zone-label">Rechts</div>
-    </div>
+  <div id="hud">
+    Gebruik WASD of pijltjes om te bewegen.<br>
+    Powers komen van de Toy Pad:
+    - Batman: snelheid
+    - Gandalf: teleport naar portal
+    - Robot: door muren heen (ghost)
   </div>
 
-  <!-- Output -->
-  <div id="output">Nog geen figuur geplaatst.</div>
+  <!-- Toy Pad popup -->
+  <div id="pad-overlay">
+    <div id="pad-window">
+      <div id="pad-header">
+        <h2>Toy Pad</h2>
+        <button id="close-pad-btn">Sluiten</button>
+      </div>
+      <small>Klik eerst een figuur, daarna een zone.</small>
+
+      <div class="row" id="figures"></div>
+
+      <div class="pad">
+        <div class="zone" data-zone="left">
+          <div class="zone-glow" id="glow-left"></div>
+          <span>Leeg</span>
+          <div class="zone-label">Links</div>
+        </div>
+        <div class="zone" data-zone="middle">
+          <div class="zone-glow" id="glow-middle"></div>
+          <span>Leeg</span>
+          <div class="zone-label">Midden</div>
+        </div>
+        <div class="zone" data-zone="right">
+          <div class="zone-glow" id="glow-right"></div>
+          <span>Leeg</span>
+          <div class="zone-label">Rechts</div>
+        </div>
+      </div>
+
+      <div id="pad-output">Nog geen figuur geplaatst.</div>
+    </div>
+  </div>
 
   <script>
-    // Figuren-definitie (jij kunt dit uitbreiden)
+    // Figuren met powers
     const figures = {
       batman: {
         name: "Batman",
-        power: "Vechtkracht",
-        world: "Gotham City",
+        power: "speed",
+        description: "Verhoogt loopsnelheid.",
         color: "#00bcd4"
       },
       gandalf: {
         name: "Gandalf",
-        power: "Magie",
-        world: "Middle-earth",
+        power: "teleport",
+        description: "Teleporteert naar dichtstbijzijnde portal.",
         color: "#9c27b0"
-      },
-      wyldstyle: {
-        name: "Wyldstyle",
-        power: "Bouwen",
-        world: "LEGO City",
-        color: "#ff9800"
       },
       robot: {
         name: "Robot",
-        power: "Hack & Scan",
-        world: "Space Station",
+        power: "ghost",
+        description: "Kan door muren heen lopen.",
         color: "#4caf50"
       }
     };
 
     let selectedFigureId = null;
-    const zoneState = {
-      left: null,
-      middle: null,
-      right: null
-    };
+    const zoneState = { left: null, middle: null, right: null };
 
+    const padOverlay = document.getElementById("pad-overlay");
+    const openPadBtn = document.getElementById("open-pad-btn");
+    const closePadBtn = document.getElementById("close-pad-btn");
     const figuresContainer = document.getElementById("figures");
-    const output = document.getElementById("output");
+    const padOutput = document.getElementById("pad-output");
 
-    // Figuren-knoppen genereren
+    openPadBtn.addEventListener("click", () => {
+      padOverlay.style.display = "flex";
+    });
+
+    closePadBtn.addEventListener("click", () => {
+      padOverlay.style.display = "none";
+    });
+
+    // Figuren UI
     function renderFigures() {
       figuresContainer.innerHTML = "";
       Object.entries(figures).forEach(([id, fig]) => {
@@ -214,23 +340,19 @@
 
     function selectFigure(id) {
       selectedFigureId = id;
-
-      // Active class updaten
       document.querySelectorAll(".figure").forEach((el) => {
         el.classList.toggle("active", el.dataset.id === id);
       });
-
       const fig = figures[id];
-      output.textContent =
-        `${fig.name} geselecteerd.\nKlik nu op een zone op de Toy Pad.`;
+      padOutput.textContent =
+        `${fig.name} geselecteerd.\nPower: ${fig.power}\n${fig.description}\nKlik nu op een zone.`;
     }
 
-    // Zone klik-logica
     document.querySelectorAll(".zone").forEach((zoneEl) => {
       zoneEl.addEventListener("click", () => {
         const zoneId = zoneEl.dataset.zone;
         if (!selectedFigureId) {
-          output.textContent = "Selecteer eerst een figuur.";
+          padOutput.textContent = "Selecteer eerst een figuur.";
           return;
         }
         placeFigureOnZone(selectedFigureId, zoneId);
@@ -241,46 +363,148 @@
       const fig = figures[figureId];
       zoneState[zoneId] = figureId;
 
-      // Zone element
       const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
       const label = zoneEl.querySelector("span");
       const glow = zoneEl.querySelector(".zone-glow");
 
-      // Tekst updaten
       label.textContent = fig.name;
       zoneEl.classList.add("has-figure");
-
-      // Glow kleur
       glow.style.background = `
         radial-gradient(circle at 30% 30%, ${fig.color}, transparent 60%)
       `;
       zoneEl.style.borderColor = fig.color;
       zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
 
-      // Output-tekst
-      output.textContent =
+      padOutput.textContent =
         `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.\n` +
-        `Power: ${fig.power}\n` +
-        `Wereld: ${fig.world}`;
+        `Power: ${fig.power}\n${fig.description}`;
 
-      // Hier kun je "portals", "levels" of andere acties koppelen
-      triggerGameEvent(fig, zoneId);
+      applyPowersFromZones();
     }
 
-    // Hier kun je later logica toevoegen (andere pagina, animatie, etc.)
-    function triggerGameEvent(fig, zoneId) {
-      console.log(
-        `EVENT: ${fig.name} op ${zoneId} → ${fig.power} in ${fig.world}`
-      );
-      // Voor nu alleen console-log.
-      // Later kun je hier:
-      // - een andere scene laden
-      // - een animatie starten
-      // - een geluid afspelen
+    // GAME LOGIC
+    const gameWorld = document.getElementById("game-world");
+    const playerEl = document.getElementById("player");
+
+    const worldWidth = 10;
+    const worldHeight = 7;
+    const tileSize = 40;
+
+    const world = [];
+    const portals = [];
+
+    let player = { x: 1, y: 1, speed: 1, ghost: false };
+
+    function createWorld() {
+      gameWorld.innerHTML = "";
+      for (let y = 0; y < worldHeight; y++) {
+        for (let x = 0; x < worldWidth; x++) {
+          let type = "floor";
+
+          if (x === 0 || y === 0 || x === worldWidth - 1 || y === worldHeight - 1) {
+            type = "wall";
+          }
+
+          if ((x === 8 && y === 2) || (x === 3 && y === 5)) {
+            type = "portal";
+            portals.push({ x, y });
+          }
+
+          world.push({ x, y, type });
+
+          const tile = document.createElement("div");
+          tile.className = "tile " + (type === "wall" ? "wall" : type === "portal" ? "portal" : "");
+          tile.style.left = x * tileSize + "px";
+          tile.style.top = y * tileSize + "px";
+          gameWorld.appendChild(tile);
+        }
+      }
     }
+
+    function renderPlayer() {
+      playerEl.style.left = player.x * tileSize + "px";
+      playerEl.style.top = player.y * tileSize + "px";
+    }
+
+    function isWall(x, y) {
+      const tile = world.find((t) => t.x === x && t.y === y);
+      return tile && tile.type === "wall";
+    }
+
+    function movePlayer(dx, dy) {
+      const steps = player.speed;
+      for (let i = 0; i < steps; i++) {
+        const newX = player.x + dx;
+        const newY = player.y + dy;
+
+        if (!player.ghost && isWall(newX, newY)) {
+          break;
+        }
+
+        player.x = newX;
+        player.y = newY;
+      }
+      renderPlayer();
+    }
+
+    function teleportToPortal() {
+      if (portals.length === 0) return;
+      const target = portals[0];
+      player.x = target.x;
+      player.y = target.y;
+      renderPlayer();
+    }
+
+    // Powers uit zones toepassen
+    function applyPowersFromZones() {
+      player.speed = 1;
+      player.ghost = false;
+
+      const activePowers = Object.values(zoneState)
+        .filter(Boolean)
+        .map((id) => figures[id].power);
+
+      if (activePowers.includes("speed")) {
+        player.speed = 2;
+      }
+      if (activePowers.includes("ghost")) {
+        player.ghost = true;
+      }
+      if (activePowers.includes("teleport")) {
+        teleportToPortal();
+      }
+    }
+
+    // Keyboard
+    window.addEventListener("keydown", (e) => {
+      switch (e.key) {
+        case "ArrowUp":
+        case "w":
+        case "W":
+          movePlayer(0, -1);
+          break;
+        case "ArrowDown":
+        case "s":
+        case "S":
+          movePlayer(0, 1);
+          break;
+        case "ArrowLeft":
+        case "a":
+        case "A":
+          movePlayer(-1, 0);
+          break;
+        case "ArrowRight":
+        case "d":
+        case "D":
+          movePlayer(1, 0);
+          break;
+      }
+    });
 
     // Init
     renderFigures();
+    createWorld();
+    renderPlayer();
   </script>
 </body>
 </html>
