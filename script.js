@@ -4,12 +4,18 @@
 const loadingScreen = document.getElementById("loading-screen");
 
 /* ============================================================
-   TOY PAD
+   FIGURE DATA
 ============================================================ */
 const figures = {
-  batman:  { name: "Batman",  power: "speed",    color: "#29b6f6" },
-  gandalf: { name: "Gandalf", power: "teleport", color: "#ab47bc" },
-  robot:   { name: "Robot",   power: "jump",     color: "#ffd600" }
+  batman:      { name: "Batman",      power: "speed",       color: "#29b6f6" },
+  gandalf:     { name: "Gandalf",     power: "teleport",    color: "#ab47bc" },
+  robot:       { name: "Robot",       power: "jump",        color: "#ffd600" },
+  wyldstyle:   { name: "Wyldstyle",   power: "build",       color: "#ff4081" },
+  superman:    { name: "Superman",    power: "fly",         color: "#3f51b5" },
+  flash:       { name: "The Flash",   power: "ultraspeed",  color: "#ff1744" },
+  joker:       { name: "Joker",       power: "chaos",       color: "#8bc34a" },
+  emmet:       { name: "Emmet",       power: "buildboost",  color: "#ff9800" },
+  cyberninja:  { name: "Cyber Ninja", power: "stealthjump", color: "#00e5ff" }
 };
 
 let selectedFigureId = null;
@@ -24,6 +30,9 @@ const padOutput = document.getElementById("pad-output");
 openPadBtn.onclick = () => padOverlay.style.display = "flex";
 closePadBtn.onclick = () => padOverlay.style.display = "none";
 
+/* ============================================================
+   RENDER FIGURES
+============================================================ */
 function renderFigures() {
   figuresContainer.innerHTML = "";
   for (const [id, fig] of Object.entries(figures)) {
@@ -68,9 +77,15 @@ function applyPowersFromZones() {
   canTeleport = false;
 
   for (const id of Object.values(zoneState)) {
-    if (id === "batman") speedMultiplier = 1.4;
-    if (id === "robot") jumpStrength = 0.28;
-    if (id === "gandalf") canTeleport = true;
+    if (!id) continue;
+
+    const power = figures[id].power;
+
+    if (power === "speed") speedMultiplier = 1.4;
+    if (power === "jump") jumpStrength = 0.28;
+    if (power === "teleport") canTeleport = true;
+    if (power === "ultraspeed") speedMultiplier = 2.2;
+    if (power === "stealthjump") jumpStrength = 0.35;
   }
 }
 
@@ -102,7 +117,7 @@ function pollGamepads() {
 pollGamepads();
 
 /* ============================================================
-   BATMAN MODEL
+   BATMAN MODEL (NO CAPE)
 ============================================================ */
 function createBatman() {
   const group = new THREE.Group();
