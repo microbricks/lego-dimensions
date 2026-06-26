@@ -14,6 +14,32 @@
       color: white;
     }
 
+    /* LOADING SCREEN */
+    #loading-screen {
+      position: fixed;
+      inset: 0;
+      background: #050814;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      z-index: 99999;
+      font-size: 28px;
+      color: white;
+      font-weight: 600;
+      letter-spacing: 1px;
+      transition: opacity 0.3s ease;
+    }
+
+    #loading-text {
+      animation: pulse 1.2s infinite ease-in-out;
+    }
+
+    @keyframes pulse {
+      0%   { opacity: 0.3; }
+      50%  { opacity: 1; }
+      100% { opacity: 0.3; }
+    }
+
     /* HUD */
     #hud {
       position: fixed;
@@ -111,6 +137,11 @@
 </head>
 
 <body>
+
+  <!-- LOADING SCREEN -->
+  <div id="loading-screen">
+    <div id="loading-text">Loading...</div>
+  </div>
 
   <!-- HUD -->
   <div id="hud">
