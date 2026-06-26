@@ -167,6 +167,45 @@ function readGamepads() {
 readGamepads();
 
 /* ============================================================
+   LEGO BLOK SPELER
+============================================================ */
+
+function createLegoPlayer() {
+  const group = new THREE.Group();
+
+  const yellow = new THREE.MeshLambertMaterial({ color: 0xffd600 });
+  const blue   = new THREE.MeshLambertMaterial({ color: 0x1e88e5 });
+  const black  = new THREE.MeshLambertMaterial({ color: 0x212121 });
+
+  // Hoofd
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), yellow);
+  head.position.set(0, 1.25, 0);
+  group.add(head);
+
+  // Lichaam
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), blue);
+  body.position.set(0, 0.65, 0);
+  group.add(body);
+
+  // Benen
+  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.35), black);
+  legs.position.set(0, 0.25, 0);
+  group.add(legs);
+
+  // Armen
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), yellow);
+  armL.position.set(-0.4, 0.75, 0);
+  group.add(armL);
+
+  const armR = armL.clone();
+  armR.position.set(0.4, 0.75, 0);
+  group.add(armR);
+
+  group.position.set(0, 0.5, 0);
+  return group;
+}
+
+/* ============================================================
    3D GAME (Three.js)
 ============================================================ */
 let scene, camera, renderer;
@@ -197,7 +236,6 @@ function init3D() {
   scene.add(light);
 
   const matFloor = new THREE.MeshLambertMaterial({ color: 0x111633 });
-  const matPlayer = new THREE.MeshLambertMaterial({ color: 0xffd600 });
   const matWall = new THREE.MeshLambertMaterial({ color: 0x283593 });
   const matPillar = new THREE.MeshLambertMaterial({ color: 0x3949ab });
   const matTower = new THREE.MeshLambertMaterial({ color: 0x1a237e });
@@ -209,8 +247,8 @@ function init3D() {
   floor.position.y = -0.1;
   scene.add(floor);
 
-  player = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1, 0.5), matPlayer);
-  player.position.set(0, 0.5, 0);
+  // ⭐ LEGO speler
+  player = createLegoPlayer();
   scene.add(player);
 
   portal1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), matPortal1);
