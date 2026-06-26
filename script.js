@@ -1,7 +1,24 @@
 /* ============================================================
-   LOADING SCREEN
+   UI ELEMENTS
 ============================================================ */
 const loadingScreen = document.getElementById("loading-screen");
+const padOverlay = document.getElementById("pad-overlay");
+const settingsOverlay = document.getElementById("settings-overlay");
+const figuresContainer = document.getElementById("figures");
+const padOutput = document.getElementById("pad-output");
+const fpsCounter = document.getElementById("fps-counter");
+
+/* Buttons */
+document.getElementById("open-pad-btn").onclick = () => padOverlay.style.display = "flex";
+document.getElementById("close-pad-btn").onclick = () => padOverlay.style.display = "none";
+document.getElementById("open-settings-btn").onclick = () => settingsOverlay.style.display = "flex";
+document.getElementById("close-settings-btn").onclick = () => settingsOverlay.style.display = "none";
+
+/* Settings controls */
+const toggleShadows = document.getElementById("toggle-shadows");
+const renderScale = document.getElementById("render-scale");
+const toggleCameraRotate = document.getElementById("toggle-camera-rotate");
+const toggleFPS = document.getElementById("toggle-fps");
 
 /* ============================================================
    FIGURE DATA
@@ -21,17 +38,8 @@ const figures = {
 let selectedFigureId = null;
 const zoneState = { left: null, middle: null, right: null };
 
-const padOverlay = document.getElementById("pad-overlay");
-const openPadBtn = document.getElementById("open-pad-btn");
-const closePadBtn = document.getElementById("close-pad-btn");
-const figuresContainer = document.getElementById("figures");
-const padOutput = document.getElementById("pad-output");
-
-openPadBtn.onclick = () => padOverlay.style.display = "flex";
-closePadBtn.onclick = () => padOverlay.style.display = "none";
-
 /* ============================================================
-   RENDER FIGURES
+   RENDER FIGURES IN TOYPAD
 ============================================================ */
 function renderFigures() {
   figuresContainer.innerHTML = "";
@@ -39,7 +47,6 @@ function renderFigures() {
     const btn = document.createElement("button");
     btn.className = "figure";
     btn.textContent = fig.name;
-    btn.dataset.id = id;
     btn.style.borderColor = fig.color;
     btn.onclick = () => selectFigure(id);
     figuresContainer.appendChild(btn);
@@ -49,17 +56,34 @@ function renderFigures() {
 function selectFigure(id) {
   selectedFigureId = id;
   document.querySelectorAll(".figure").forEach(el =>
-    el.classList.toggle("active", el.dataset.id === id)
+    el.classList.toggle("active", el.textContent === figures[id].name)
   );
   padOutput.textContent = `${figures[id].name} geselecteerd. Klik een zone.`;
 }
 
+/* ============================================================
+   PLACE FIGURE ON ZONE
+============================================================ */
 document.querySelectorAll(".zone").forEach(zone => {
   zone.onclick = () => {
     if (!selectedFigureId) return;
     placeFigureOnZone(selectedFigureId, zone.dataset.zone);
   };
 });
+
+function placeFigureOnZone(id, zone) {
+  zoneState[zone] = id;
+
+  const zoneEl = document.querySelector(`.zone[data-zone="${zone}"]`);
+  zoneEl.querySelector("span").textContent = figures[id].name;
+  zoneEl.style.borderColor = figures[id].color;
+  zoneEl.style.boxShadow = `0 0 16px ${figures[id].color}`;
+
+  padOutput.textContent = `${figures[id].name} geplaatst op ${zone}.`;
+
+  applyPowers();
+  spawnFigure(id);
+}
 
 /* ============================================================
    POWERS
@@ -68,42 +92,21 @@ let speedMultiplier = 1;
 let jumpStrength = 0.18;
 let canTeleport = false;
 
-function applyPowersFromZones() {
+function applyPowers() {
   speedMultiplier = 1;
   jumpStrength = 0.18;
   canTeleport = false;
 
   for (const id of Object.values(zoneState)) {
     if (!id) continue;
-    const power = figures[id].power;
+    const p = figures[id].power;
 
-    if (power === "speed")       speedMultiplier = Math.max(speedMultiplier, 1.4);
-    if (power === "jump")        jumpStrength = Math.max(jumpStrength, 0.28);
-    if (power === "teleport")    canTeleport = true;
-    if (power === "ultraspeed")  speedMultiplier = Math.max(speedMultiplier, 2.2);
-    if (power === "stealthjump") jumpStrength = Math.max(jumpStrength, 0.35);
+    if (p === "speed") speedMultiplier = 1.4;
+    if (p === "jump") jumpStrength = 0.28;
+    if (p === "teleport") canTeleport = true;
+    if (p === "ultraspeed") speedMultiplier = 2.2;
+    if (p === "stealthjump") jumpStrength = 0.35;
   }
-}
-
-/* ============================================================
-   PLACE FIGURE ON ZONE + SPAWN
-============================================================ */
-function placeFigureOnZone(figureId, zoneId) {
-  const fig = figures[figureId];
-  zoneState[zoneId] = figureId;
-
-  const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
-  const label = zoneEl.querySelector("span");
-
-  label.textContent = fig.name;
-  zoneEl.style.borderColor = fig.color;
-  zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
-
-  padOutput.textContent =
-    `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.`;
-
-  applyPowersFromZones();
-  spawnFigure(figureId);
 }
 
 /* ============================================================
@@ -113,36 +116,28 @@ let keys = {};
 window.onkeydown = e => keys[e.key] = true;
 window.onkeyup = e => keys[e.key] = false;
 
-let joy = { lx:0, ly:0, rx:0, ry:0, a:false };
+let joy = { lx:0, ly:0, a:false };
 
 function pollGamepads() {
   const pads = navigator.getGamepads?.();
-  const joyText = document.getElementById("joycon-text");
-  const joyIcon = document.getElementById("joycon-icon");
-
-  let found = false;
+  let connected = false;
 
   if (pads) {
     for (const pad of pads) {
       if (!pad) continue;
-      if (pad.id.includes("Joy-Con") || pad.id.toLowerCase().includes("gamepad")) {
+      if (pad.id.toLowerCase().includes("joy") || pad.id.toLowerCase().includes("gamepad")) {
         joy.lx = pad.axes[0] ?? 0;
         joy.ly = pad.axes[1] ?? 0;
-        joy.rx = pad.axes[2] ?? 0;
-        joy.ry = pad.axes[3] ?? 0;
         joy.a  = pad.buttons[0]?.pressed || false;
-        found = true;
+        connected = true;
       }
     }
   }
 
-  if (found) {
-    joyText.textContent = "Gamepad: verbonden";
-    joyIcon.textContent = "🟩";
-  } else {
-    joyText.textContent = "Gamepad: geen verbonden";
-    joyIcon.textContent = "🟥";
-  }
+  document.getElementById("joycon-text").textContent =
+    connected ? "Gamepad: verbonden" : "Gamepad: geen verbonden";
+  document.getElementById("joycon-icon").textContent =
+    connected ? "🟩" : "🟥";
 
   requestAnimationFrame(pollGamepads);
 }
@@ -152,97 +147,39 @@ pollGamepads();
    MODELS
 ============================================================ */
 function createBatman() {
-  const group = new THREE.Group();
-  const black  = new THREE.MeshLambertMaterial({ color: 0x000000 });
+  const g = new THREE.Group();
+  const black = new THREE.MeshLambertMaterial({ color: 0x000000 });
   const yellow = new THREE.MeshLambertMaterial({ color: 0xffd600 });
 
-  const mask = new THREE.Group();
-  const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.50, 0.48), black);
-  helmet.position.set(0, 1.28, 0);
-  mask.add(helmet);
+  const head = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), black);
+  head.position.y = 1.3;
+  g.add(head);
 
-  const earGeo = new THREE.BoxGeometry(0.12, 0.35, 0.12);
-  const earL = new THREE.Mesh(earGeo, black); earL.position.set(-0.18, 1.55, 0);
-  const earR = new THREE.Mesh(earGeo, black); earR.position.set( 0.18, 1.55, 0);
-  mask.add(earL, earR);
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.8, 0.4), black);
+  body.position.y = 0.7;
+  g.add(body);
 
-  const eyeGeo = new THREE.BoxGeometry(0.12, 0.06, 0.02);
-  const eyeL = new THREE.Mesh(eyeGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
-  eyeL.position.set(-0.12, 1.30, 0.25);
-  const eyeR = eyeL.clone(); eyeR.position.x = 0.12;
-  mask.add(eyeL, eyeR);
+  const logo = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.25, 0.05), yellow);
+  logo.position.set(0, 0.75, 0.23);
+  g.add(logo);
 
-  group.add(mask);
-
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), black);
-  body.position.set(0, 0.65, 0);
-  group.add(body);
-
-  const logo = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.02), yellow);
-  logo.position.set(0, 0.70, 0.20);
-  group.add(logo);
-
-  const bat = new THREE.Mesh(new THREE.BoxGeometry(0.30, 0.12, 0.01), black);
-  bat.position.set(0, 0.70, 0.21);
-  group.add(bat);
-
-  const belt = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.18, 0.30), yellow);
-  belt.position.set(0, 0.40, 0);
-  group.add(belt);
-
-  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
-  legL.position.set(-0.15, 0.25, 0);
-  const legR = legL.clone(); legR.position.x = 0.15;
-  group.add(legL, legR);
-
-  const armPivotL = new THREE.Group();
-  armPivotL.position.set(-0.4, 0.75, 0);
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), black);
-  armL.position.set(0, -0.275, 0);
-  armPivotL.add(armL);
-
-  const armPivotR = new THREE.Group();
-  armPivotR.position.set(0.4, 0.75, 0);
-  const armR = armL.clone();
-  armR.position.set(0, -0.275, 0);
-  armPivotR.add(armR);
-
-  group.add(armPivotL, armPivotR);
-
-  const batarang = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.10, 0.02), black);
-  batarang.position.set(0.55, 0.75, 0);
-  batarang.rotation.z = Math.PI * 0.25;
-  group.add(batarang);
-
-  group.legL = legL;
-  group.legR = legR;
-  group.armPivotL = armPivotL;
-  group.armPivotR = armPivotR;
-
-  group.position.set(0, 0.5, 0);
-  return group;
+  g.position.y = 0.5;
+  return g;
 }
 
 function spawnFigure(id) {
   if (player) scene.remove(player);
 
-  let model;
-
-  switch(id) {
-    case "batman":
-      model = createBatman();
-      break;
-
-    default:
-      model = new THREE.Mesh(
-        new THREE.BoxGeometry(0.6, 1.1, 0.6),
-        new THREE.MeshLambertMaterial({ color: figures[id].color })
-      );
-      model.position.y = 0.55;
-      break;
+  if (id === "batman") {
+    player = createBatman();
+  } else {
+    player = new THREE.Mesh(
+      new THREE.BoxGeometry(0.6, 1.1, 0.6),
+      new THREE.MeshLambertMaterial({ color: figures[id].color })
+    );
+    player.position.y = 0.55;
   }
 
-  player = model;
   scene.add(player);
 }
 
@@ -252,11 +189,6 @@ function spawnFigure(id) {
 let scene, camera, renderer, player;
 let velocityY = 0;
 let onGround = true;
-let walkCycle = 0;
-
-const fpsCounter = document.getElementById("fps-counter");
-let lastFPSUpdate = 0;
-let frames = 0;
 
 function init3D() {
   scene = new THREE.Scene();
@@ -272,7 +204,7 @@ function init3D() {
   scene.add(new THREE.HemisphereLight(0xffffff, 0x202020, 1.2));
 
   const floor = new THREE.Mesh(
-    new THREE.BoxGeometry(10, 0.2, 10),
+    new THREE.BoxGeometry(20, 0.2, 20),
     new THREE.MeshLambertMaterial({ color: 0x111633 })
   );
   floor.position.y = -0.1;
@@ -281,6 +213,16 @@ function init3D() {
   player = createBatman();
   scene.add(player);
 
+  /* Settings */
+  toggleShadows.onchange = () => renderer.shadowMap.enabled = toggleShadows.checked;
+  renderScale.onchange = () => {
+    renderer.setPixelRatio(window.devicePixelRatio * parseFloat(renderScale.value));
+    renderer.setSize(innerWidth, innerHeight);
+  };
+  toggleCameraRotate.onchange = () => cameraRotationEnabled = toggleCameraRotate.checked;
+  toggleFPS.onchange = () => fpsCounter.style.display = toggleFPS.checked ? "block" : "none";
+
+  /* Loading fade */
   setTimeout(() => {
     loadingScreen.style.opacity = "0";
     setTimeout(() => loadingScreen.remove(), 300);
@@ -292,31 +234,21 @@ function init3D() {
 /* ============================================================
    PLAYER UPDATE
 ============================================================ */
+let cameraRotationEnabled = true;
+
 function updatePlayer(delta) {
   const speed = 0.08 * speedMultiplier;
 
-  let moveX = joy.lx * speed;
-  let moveZ = joy.ly * speed;
+  let mx = joy.lx * speed;
+  let mz = joy.ly * speed;
 
-  if (keys["w"]) moveZ -= speed;
-  if (keys["s"]) moveZ += speed;
-  if (keys["a"]) moveX -= speed;
-  if (keys["d"]) moveX += speed;
+  if (keys["w"]) mz -= speed;
+  if (keys["s"]) mz += speed;
+  if (keys["a"]) mx -= speed;
+  if (keys["d"]) mx += speed;
 
-  player.position.x += moveX;
-  player.position.z += moveZ;
-
-  const moving = Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01;
-
-  if (moving && onGround && player.armPivotL) {
-    walkCycle += delta * 0.25;
-    const swing = Math.sin(walkCycle * 10) * 0.6;
-
-    player.armPivotL.rotation.x = swing;
-    player.armPivotR.rotation.x = -swing;
-    player.legL.rotation.x = -swing;
-    player.legR.rotation.x = swing;
-  }
+  player.position.x += mx;
+  player.position.z += mz;
 
   if ((joy.a || keys[" "]) && onGround) {
     velocityY = jumpStrength;
@@ -332,11 +264,12 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  const rotSpeed = 0.02;
-  if (keys["ArrowLeft"])
-    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),  rotSpeed);
-  if (keys["ArrowRight"])
-    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -rotSpeed);
+  if (cameraRotationEnabled) {
+    if (keys["ArrowLeft"])
+      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), 0.02);
+    if (keys["ArrowRight"])
+      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -0.02);
+  }
 
   camera.lookAt(player.position);
 }
@@ -345,6 +278,8 @@ function updatePlayer(delta) {
    ANIMATION LOOP + FPS
 ============================================================ */
 let last = performance.now();
+let frames = 0;
+let lastFPSUpdate = 0;
 
 function animate(now) {
   requestAnimationFrame(animate);
