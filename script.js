@@ -1,5 +1,5 @@
 /* ============================================================
-   TOY PAD (SIMPEL)
+   TOY PAD
 ============================================================ */
 const figures = {
   batman:  { name: "Batman",  power: "speed",    color: "#29b6f6" },
@@ -70,7 +70,7 @@ function applyPowersFromZones() {
 }
 
 /* ============================================================
-   KEYBOARD + JOY-CON
+   INPUT (KEYBOARD + JOY-CON)
 ============================================================ */
 let keys = {};
 window.onkeydown = e => keys[e.key] = true;
@@ -97,22 +97,22 @@ function pollGamepads() {
 pollGamepads();
 
 /* ============================================================
-   LEGO BATMAN MODEL (CLEAN)
+   BATMAN MODEL
 ============================================================ */
 function createBatman() {
   const group = new THREE.Group();
   const black  = new THREE.MeshLambertMaterial({ color: 0x000000 });
   const yellow = new THREE.MeshLambertMaterial({ color: 0xffd600 });
 
-  // MASKER
+  // MASK
   const mask = new THREE.Group();
   const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.50, 0.48), black);
   helmet.position.set(0, 1.28, 0);
   mask.add(helmet);
 
-  const ear = new THREE.BoxGeometry(0.12, 0.35, 0.12);
-  const earL = new THREE.Mesh(ear, black); earL.position.set(-0.18, 1.55, 0);
-  const earR = new THREE.Mesh(ear, black); earR.position.set( 0.18, 1.55, 0);
+  const earGeo = new THREE.BoxGeometry(0.12, 0.35, 0.12);
+  const earL = new THREE.Mesh(earGeo, black); earL.position.set(-0.18, 1.55, 0);
+  const earR = new THREE.Mesh(earGeo, black); earR.position.set( 0.18, 1.55, 0);
   mask.add(earL, earR);
 
   const eyeGeo = new THREE.BoxGeometry(0.12, 0.06, 0.02);
@@ -123,7 +123,7 @@ function createBatman() {
 
   group.add(mask);
 
-  // LICHAAM
+  // BODY
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), black);
   body.position.set(0, 0.65, 0);
   group.add(body);
@@ -142,13 +142,13 @@ function createBatman() {
   belt.position.set(0, 0.40, 0);
   group.add(belt);
 
-  // BENEN
+  // LEGS
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
   legL.position.set(-0.15, 0.25, 0);
   const legR = legL.clone(); legR.position.x = 0.15;
   group.add(legL, legR);
 
-  // ARMEN MET PIVOT
+  // ARMS WITH PIVOT
   const armPivotL = new THREE.Group();
   armPivotL.position.set(-0.4, 0.75, 0);
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), black);
@@ -169,7 +169,7 @@ function createBatman() {
   batarang.rotation.z = Math.PI * 0.25;
   group.add(batarang);
 
-  // REFERENTIES
+  // REFERENCES
   group.legL = legL;
   group.legR = legR;
   group.armPivotL = armPivotL;
@@ -186,6 +186,10 @@ let scene, camera, renderer, player;
 let velocityY = 0;
 let onGround = true;
 let walkCycle = 0;
+
+let fpsCounter = document.getElementById("fps-counter");
+let lastFPSUpdate = 0;
+let frames = 0;
 
 function init3D() {
   scene = new THREE.Scene();
@@ -261,7 +265,7 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  // CAMERA ROTATIE
+  // CAMERA ROTATION
   const rotSpeed = 0.02;
   if (keys["ArrowLeft"])  camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),  rotSpeed);
   if (keys["ArrowRight"]) camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -rotSpeed);
@@ -270,11 +274,21 @@ function updatePlayer(delta) {
 }
 
 /* ============================================================
-   ANIMATE LOOP
+   ANIMATION LOOP + FPS
 ============================================================ */
 let last = performance.now();
+
 function animate(now) {
   requestAnimationFrame(animate);
+
+  // FPS COUNTER
+  frames++;
+  if (now - lastFPSUpdate > 1000) {
+    fpsCounter.textContent = "FPS: " + frames;
+    frames = 0;
+    lastFPSUpdate = now;
+  }
+
   const delta = (now - last) / 16.67;
   last = now;
 
