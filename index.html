@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>LEGO Dimensions + Batman</title>
+  <title>LEGO Dimensions – Batman Edition</title>
 
   <style>
     body {
@@ -14,20 +14,21 @@
       color: white;
     }
 
+    /* HUD */
     #hud {
       position: fixed;
       top: 12px;
       left: 12px;
       z-index: 20;
-      background: rgba(0,0,0,0.6);
-      padding: 10px 14px;
+      background: rgba(0,0,0,0.55);
+      padding: 12px 16px;
       border-radius: 10px;
-      border: 1px solid rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.15);
     }
 
     #hud-title {
       font-size: 18px;
-      font-weight: bold;
+      font-weight: 600;
       margin-bottom: 6px;
     }
 
@@ -46,6 +47,7 @@
       font-size: 14px;
     }
 
+    /* Toy Pad overlay */
     #pad-overlay {
       position: fixed;
       inset: 0;
@@ -90,6 +92,7 @@
       cursor: pointer;
     }
 
+    /* Debug */
     #debug-box {
       position: fixed;
       bottom: 10px;
