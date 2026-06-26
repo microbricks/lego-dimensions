@@ -51,16 +51,13 @@ function selectFigure(id) {
   document.querySelectorAll(".figure").forEach(el =>
     el.classList.toggle("active", el.dataset.id === id)
   );
-  padOutput.textContent = `${figures[id].name} geselecteerd.`;
+  padOutput.textContent = `${figures[id].name} geselecteerd. Klik een zone.`;
 }
 
 document.querySelectorAll(".zone").forEach(zone => {
   zone.onclick = () => {
     if (!selectedFigureId) return;
-    zoneState[zone.dataset.zone] = selectedFigureId;
-    zone.querySelector("span").textContent = figures[selectedFigureId].name;
-    zone.style.borderColor = figures[selectedFigureId].color;
-    applyPowersFromZones();
+    placeFigureOnZone(selectedFigureId, zone.dataset.zone);
   };
 });
 
@@ -78,15 +75,35 @@ function applyPowersFromZones() {
 
   for (const id of Object.values(zoneState)) {
     if (!id) continue;
-
     const power = figures[id].power;
 
-    if (power === "speed") speedMultiplier = 1.4;
-    if (power === "jump") jumpStrength = 0.28;
-    if (power === "teleport") canTeleport = true;
-    if (power === "ultraspeed") speedMultiplier = 2.2;
-    if (power === "stealthjump") jumpStrength = 0.35;
+    if (power === "speed")       speedMultiplier = Math.max(speedMultiplier, 1.4);
+    if (power === "jump")        jumpStrength = Math.max(jumpStrength, 0.28);
+    if (power === "teleport")    canTeleport = true;
+    if (power === "ultraspeed")  speedMultiplier = Math.max(speedMultiplier, 2.2);
+    if (power === "stealthjump") jumpStrength = Math.max(jumpStrength, 0.35);
   }
+}
+
+/* ============================================================
+   PLACE FIGURE ON ZONE + SPAWN
+============================================================ */
+function placeFigureOnZone(figureId, zoneId) {
+  const fig = figures[figureId];
+  zoneState[zoneId] = figureId;
+
+  const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
+  const label = zoneEl.querySelector("span");
+
+  label.textContent = fig.name;
+  zoneEl.style.borderColor = fig.color;
+  zoneEl.style.boxShadow = `0 0 16px ${fig.color}55`;
+
+  padOutput.textContent =
+    `${fig.name} geplaatst op zone: ${zoneId.toUpperCase()}.`;
+
+  applyPowersFromZones();
+  spawnFigure(figureId);
 }
 
 /* ============================================================
@@ -100,31 +117,45 @@ let joy = { lx:0, ly:0, rx:0, ry:0, a:false };
 
 function pollGamepads() {
   const pads = navigator.getGamepads?.();
+  const joyText = document.getElementById("joycon-text");
+  const joyIcon = document.getElementById("joycon-icon");
+
+  let found = false;
+
   if (pads) {
     for (const pad of pads) {
       if (!pad) continue;
-      if (pad.id.includes("Joy-Con")) {
+      if (pad.id.includes("Joy-Con") || pad.id.toLowerCase().includes("gamepad")) {
         joy.lx = pad.axes[0] ?? 0;
         joy.ly = pad.axes[1] ?? 0;
         joy.rx = pad.axes[2] ?? 0;
         joy.ry = pad.axes[3] ?? 0;
         joy.a  = pad.buttons[0]?.pressed || false;
+        found = true;
       }
     }
   }
+
+  if (found) {
+    joyText.textContent = "Gamepad: verbonden";
+    joyIcon.textContent = "🟩";
+  } else {
+    joyText.textContent = "Gamepad: geen verbonden";
+    joyIcon.textContent = "🟥";
+  }
+
   requestAnimationFrame(pollGamepads);
 }
 pollGamepads();
 
 /* ============================================================
-   BATMAN MODEL (NO CAPE)
+   MODELS
 ============================================================ */
 function createBatman() {
   const group = new THREE.Group();
   const black  = new THREE.MeshLambertMaterial({ color: 0x000000 });
   const yellow = new THREE.MeshLambertMaterial({ color: 0xffd600 });
 
-  // MASK
   const mask = new THREE.Group();
   const helmet = new THREE.Mesh(new THREE.BoxGeometry(0.48, 0.50, 0.48), black);
   helmet.position.set(0, 1.28, 0);
@@ -143,12 +174,10 @@ function createBatman() {
 
   group.add(mask);
 
-  // BODY
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), black);
   body.position.set(0, 0.65, 0);
   group.add(body);
 
-  // LOGO
   const logo = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.25, 0.02), yellow);
   logo.position.set(0, 0.70, 0.20);
   group.add(logo);
@@ -157,18 +186,15 @@ function createBatman() {
   bat.position.set(0, 0.70, 0.21);
   group.add(bat);
 
-  // BELT
   const belt = new THREE.Mesh(new THREE.BoxGeometry(0.60, 0.18, 0.30), yellow);
   belt.position.set(0, 0.40, 0);
   group.add(belt);
 
-  // LEGS
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
   legL.position.set(-0.15, 0.25, 0);
   const legR = legL.clone(); legR.position.x = 0.15;
   group.add(legL, legR);
 
-  // ARMS WITH PIVOT
   const armPivotL = new THREE.Group();
   armPivotL.position.set(-0.4, 0.75, 0);
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), black);
@@ -183,13 +209,11 @@ function createBatman() {
 
   group.add(armPivotL, armPivotR);
 
-  // BATARANG
   const batarang = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.10, 0.02), black);
   batarang.position.set(0.55, 0.75, 0);
   batarang.rotation.z = Math.PI * 0.25;
   group.add(batarang);
 
-  // REFERENCES
   group.legL = legL;
   group.legR = legR;
   group.armPivotL = armPivotL;
@@ -197,6 +221,29 @@ function createBatman() {
 
   group.position.set(0, 0.5, 0);
   return group;
+}
+
+function spawnFigure(id) {
+  if (player) scene.remove(player);
+
+  let model;
+
+  switch(id) {
+    case "batman":
+      model = createBatman();
+      break;
+
+    default:
+      model = new THREE.Mesh(
+        new THREE.BoxGeometry(0.6, 1.1, 0.6),
+        new THREE.MeshLambertMaterial({ color: figures[id].color })
+      );
+      model.position.y = 0.55;
+      break;
+  }
+
+  player = model;
+  scene.add(player);
 }
 
 /* ============================================================
@@ -207,7 +254,7 @@ let velocityY = 0;
 let onGround = true;
 let walkCycle = 0;
 
-let fpsCounter = document.getElementById("fps-counter");
+const fpsCounter = document.getElementById("fps-counter");
 let lastFPSUpdate = 0;
 let frames = 0;
 
@@ -234,7 +281,6 @@ function init3D() {
   player = createBatman();
   scene.add(player);
 
-  /* LOADING SCREEN FADE OUT */
   setTimeout(() => {
     loadingScreen.style.opacity = "0";
     setTimeout(() => loadingScreen.remove(), 300);
@@ -262,7 +308,7 @@ function updatePlayer(delta) {
 
   const moving = Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01;
 
-  if (moving && onGround) {
+  if (moving && onGround && player.armPivotL) {
     walkCycle += delta * 0.25;
     const swing = Math.sin(walkCycle * 10) * 0.6;
 
@@ -270,11 +316,6 @@ function updatePlayer(delta) {
     player.armPivotR.rotation.x = -swing;
     player.legL.rotation.x = -swing;
     player.legR.rotation.x = swing;
-  } else if (onGround) {
-    player.armPivotL.rotation.x *= 0.8;
-    player.armPivotR.rotation.x *= 0.8;
-    player.legL.rotation.x *= 0.8;
-    player.legR.rotation.x *= 0.8;
   }
 
   if ((joy.a || keys[" "]) && onGround) {
@@ -291,10 +332,11 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  // CAMERA ROTATION
   const rotSpeed = 0.02;
-  if (keys["ArrowLeft"])  camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),  rotSpeed);
-  if (keys["ArrowRight"]) camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -rotSpeed);
+  if (keys["ArrowLeft"])
+    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0),  rotSpeed);
+  if (keys["ArrowRight"])
+    camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -rotSpeed);
 
   camera.lookAt(player.position);
 }
@@ -307,7 +349,6 @@ let last = performance.now();
 function animate(now) {
   requestAnimationFrame(animate);
 
-  // FPS COUNTER
   frames++;
   if (now - lastFPSUpdate > 1000) {
     fpsCounter.textContent = "FPS: " + frames;
