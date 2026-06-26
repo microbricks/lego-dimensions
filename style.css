@@ -170,3 +170,25 @@ body {
   color: #00e5ff;
   z-index: 9999;
 }
+
+/* ============================================================
+   CHARACTER SKINS
+   (kleurcodes worden door script.js uitgelezen)
+============================================================ */
+
+/* Batman */
+.skin-batman-classic  { --skin-color: #000000; }
+.skin-batman-blue     { --skin-color: #1e88e5; }
+.skin-batman-dark     { --skin-color: #111111; }
+
+/* Superman */
+.skin-superman-classic { --skin-color: #3f51b5; }
+.skin-superman-black   { --skin-color: #222222; }
+
+/* Flash */
+.skin-flash-classic { --skin-color: #ff1744; }
+.skin-flash-yellow  { --skin-color: #ffeb3b; }
+
+/* Joker */
+.skin-joker-classic { --skin-color: #8bc34a; }
+.skin-joker-purple  { --skin-color: #9c27b0; }
