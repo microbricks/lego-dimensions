@@ -96,7 +96,6 @@ function updateJoyConStatus() {
   for (const pad of pads) {
     if (!pad) continue;
 
-    // iPad: "Joy-Con (L/R) Extended Gamepad"
     if (pad.id.includes("Joy-Con")) {
       found = true;
       joyIcon.textContent = "🟩";
@@ -122,7 +121,6 @@ function readGamepads() {
 
   let debugText = "";
 
-  // Reset
   joy = { lx:0, ly:0, rx:0, ry:0, a:false, sl:false, sr:false, zl:false, zr:false, home:false };
 
   for (const pad of pads) {
@@ -141,15 +139,11 @@ function readGamepads() {
     debugText += "\n----------------------\n";
 
     if (pad.id.includes("Joy-Con")) {
-      // Linker stick
       joy.lx = pad.axes[0] ?? 0;
       joy.ly = pad.axes[1] ?? 0;
-
-      // Rechter stick
       joy.rx = pad.axes[2] ?? 0;
       joy.ry = pad.axes[3] ?? 0;
 
-      // Knoppen
       joy.a  = pad.buttons[0]?.pressed || false;
       joy.sl = pad.buttons[4]?.pressed || false;
       joy.sr = pad.buttons[5]?.pressed || false;
@@ -167,7 +161,7 @@ function readGamepads() {
 readGamepads();
 
 /* ============================================================
-   LEGO BLOK SPELER
+   LEGO BLOK SPELER (met animatie)
 ============================================================ */
 
 function createLegoPlayer() {
@@ -177,22 +171,22 @@ function createLegoPlayer() {
   const blue   = new THREE.MeshLambertMaterial({ color: 0x1e88e5 });
   const black  = new THREE.MeshLambertMaterial({ color: 0x212121 });
 
-  // Hoofd
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), yellow);
   head.position.set(0, 1.25, 0);
   group.add(head);
 
-  // Lichaam
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), blue);
   body.position.set(0, 0.65, 0);
   group.add(body);
 
-  // Benen
-  const legs = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.45, 0.35), black);
-  legs.position.set(0, 0.25, 0);
-  group.add(legs);
+  const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
+  legL.position.set(-0.15, 0.25, 0);
+  group.add(legL);
 
-  // Armen
+  const legR = legL.clone();
+  legR.position.set(0.15, 0.25, 0);
+  group.add(legR);
+
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), yellow);
   armL.position.set(-0.4, 0.75, 0);
   group.add(armL);
@@ -200,6 +194,11 @@ function createLegoPlayer() {
   const armR = armL.clone();
   armR.position.set(0.4, 0.75, 0);
   group.add(armR);
+
+  group.armL = armL;
+  group.armR = armR;
+  group.legL = legL;
+  group.legR = legR;
 
   group.position.set(0, 0.5, 0);
   return group;
@@ -218,6 +217,9 @@ const baseSpeed = 0.08;
 let speedMultiplier = 1;
 let jumpStrength = 0.18;
 let canTeleport = false;
+
+let walkCycle = 0;
+let jumpAnim = 0;
 
 function init3D() {
   scene = new THREE.Scene();
@@ -247,7 +249,6 @@ function init3D() {
   floor.position.y = -0.1;
   scene.add(floor);
 
-  // ⭐ LEGO speler
   player = createLegoPlayer();
   scene.add(player);
 
@@ -324,7 +325,23 @@ function updatePlayer(delta) {
   player.position.x += moveX;
   player.position.z += moveZ;
 
-  // Jump: knoppen OF stick omhoog (iPad fix)
+  const isMoving = Math.abs(moveX) > 0.01 || Math.abs(moveZ) > 0.01;
+
+  if (isMoving && onGround) {
+    walkCycle += delta * 0.25;
+    const swing = Math.sin(walkCycle * 10) * 0.6;
+
+    player.armL.rotation.x = swing;
+    player.armR.rotation.x = -swing;
+    player.legL.rotation.x = -swing;
+    player.legR.rotation.x = swing;
+  } else if (onGround) {
+    player.armL.rotation.x *= 0.8;
+    player.armR.rotation.x *= 0.8;
+    player.legL.rotation.x *= 0.8;
+    player.legR.rotation.x *= 0.8;
+  }
+
   const jumpPressed =
     joy.a || joy.sl || joy.sr || joy.zl || joy.zr ||
     joy.ly < -0.7 || joy.ry < -0.7 ||
@@ -333,6 +350,14 @@ function updatePlayer(delta) {
   if (jumpPressed && onGround) {
     velocityY = jumpStrength;
     onGround = false;
+    jumpAnim = 1;
+  }
+
+  if (!onGround) {
+    player.armL.rotation.x = THREE.MathUtils.lerp(player.armL.rotation.x, -1.2, 0.2);
+    player.armR.rotation.x = THREE.MathUtils.lerp(player.armR.rotation.x, -1.2, 0.2);
+    player.legL.rotation.x = THREE.MathUtils.lerp(player.legL.rotation.x, 0.4, 0.2);
+    player.legR.rotation.x = THREE.MathUtils.lerp(player.legR.rotation.x, 0.4, 0.2);
   }
 
   velocityY -= 0.008;
