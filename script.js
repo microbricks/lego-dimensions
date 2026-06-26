@@ -161,7 +161,7 @@ function readGamepads() {
 readGamepads();
 
 /* ============================================================
-   LEGO BLOK SPELER (met animatie)
+   LEGO BLOK SPELER MET ARM-PIVOT
 ============================================================ */
 
 function createLegoPlayer() {
@@ -171,14 +171,17 @@ function createLegoPlayer() {
   const blue   = new THREE.MeshLambertMaterial({ color: 0x1e88e5 });
   const black  = new THREE.MeshLambertMaterial({ color: 0x212121 });
 
+  // Hoofd
   const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), yellow);
   head.position.set(0, 1.25, 0);
   group.add(head);
 
+  // Lichaam
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), blue);
   body.position.set(0, 0.65, 0);
   group.add(body);
 
+  // Benen
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
   legL.position.set(-0.15, 0.25, 0);
   group.add(legL);
@@ -187,14 +190,27 @@ function createLegoPlayer() {
   legR.position.set(0.15, 0.25, 0);
   group.add(legR);
 
+  // ⭐ ARM LINKS — pivot bij schouder
+  const armPivotL = new THREE.Group();
+  armPivotL.position.set(-0.4, 0.75, 0);
+  group.add(armPivotL);
+
   const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), yellow);
-  armL.position.set(-0.4, 0.75, 0);
-  group.add(armL);
+  armL.position.set(0, -0.275, 0); // arm hangt omlaag → pivot = schouder
+  armPivotL.add(armL);
+
+  // ⭐ ARM RECHTS — pivot bij schouder
+  const armPivotR = new THREE.Group();
+  armPivotR.position.set(0.4, 0.75, 0);
+  group.add(armPivotR);
 
   const armR = armL.clone();
-  armR.position.set(0.4, 0.75, 0);
-  group.add(armR);
+  armR.position.set(0, -0.275, 0);
+  armPivotR.add(armR);
 
+  // Bewaar referenties
+  group.armPivotL = armPivotL;
+  group.armPivotR = armPivotR;
   group.armL = armL;
   group.armR = armR;
   group.legL = legL;
@@ -219,7 +235,6 @@ let jumpStrength = 0.18;
 let canTeleport = false;
 
 let walkCycle = 0;
-let jumpAnim = 0;
 
 function init3D() {
   scene = new THREE.Scene();
@@ -262,42 +277,6 @@ function init3D() {
   portal2.position.set(-2.5, 0.01, -2.5);
   scene.add(portal2);
 
-  for (let i = -5; i <= 5; i++) {
-    const w1 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
-    w1.position.set(i, 0.5, -5);
-    scene.add(w1);
-
-    const w2 = w1.clone();
-    w2.position.set(i, 0.5, 5);
-    scene.add(w2);
-  }
-
-  for (let i = -5; i <= 5; i++) {
-    const w3 = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), matWall);
-    w3.position.set(-5, 0.5, i);
-    scene.add(w3);
-
-    const w4 = w3.clone();
-    w4.position.set(5, 0.5, i);
-    scene.add(w4);
-  }
-
-  const pillar1 = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 3, 8), matPillar);
-  pillar1.position.set(-2, 1.5, -2);
-  scene.add(pillar1);
-
-  const pillar2 = pillar1.clone();
-  pillar2.position.set(2, 1.5, 2);
-  scene.add(pillar2);
-
-  const tower = new THREE.Mesh(new THREE.BoxGeometry(1.5, 4, 1.5), matTower);
-  tower.position.set(-3.5, 2, 3.5);
-  scene.add(tower);
-
-  const bridge = new THREE.Mesh(new THREE.BoxGeometry(4, 0.3, 1), matBridge);
-  bridge.position.set(0, 1.5, 0);
-  scene.add(bridge);
-
   window.onresize = onWindowResize;
   window.onkeydown = e => keys[e.key] = true;
   window.onkeyup = e => keys[e.key] = false;
@@ -331,13 +310,13 @@ function updatePlayer(delta) {
     walkCycle += delta * 0.25;
     const swing = Math.sin(walkCycle * 10) * 0.6;
 
-    player.armL.rotation.x = swing;
-    player.armR.rotation.x = -swing;
+    player.armPivotL.rotation.x = swing;
+    player.armPivotR.rotation.x = -swing;
     player.legL.rotation.x = -swing;
     player.legR.rotation.x = swing;
   } else if (onGround) {
-    player.armL.rotation.x *= 0.8;
-    player.armR.rotation.x *= 0.8;
+    player.armPivotL.rotation.x *= 0.8;
+    player.armPivotR.rotation.x *= 0.8;
     player.legL.rotation.x *= 0.8;
     player.legR.rotation.x *= 0.8;
   }
@@ -350,12 +329,11 @@ function updatePlayer(delta) {
   if (jumpPressed && onGround) {
     velocityY = jumpStrength;
     onGround = false;
-    jumpAnim = 1;
   }
 
   if (!onGround) {
-    player.armL.rotation.x = THREE.MathUtils.lerp(player.armL.rotation.x, -1.2, 0.2);
-    player.armR.rotation.x = THREE.MathUtils.lerp(player.armR.rotation.x, -1.2, 0.2);
+    player.armPivotL.rotation.x = THREE.MathUtils.lerp(player.armPivotL.rotation.x, -1.2, 0.2);
+    player.armPivotR.rotation.x = THREE.MathUtils.lerp(player.armPivotR.rotation.x, -1.2, 0.2);
     player.legL.rotation.x = THREE.MathUtils.lerp(player.legL.rotation.x, 0.4, 0.2);
     player.legR.rotation.x = THREE.MathUtils.lerp(player.legR.rotation.x, 0.4, 0.2);
   }
@@ -386,14 +364,6 @@ function updatePlayer(delta) {
   if (joy.home) {
     camera.position.set(player.position.x + 3, 3, player.position.z + 4);
     camera.lookAt(player.position);
-  }
-
-  const dist1 = player.position.distanceTo(portal1.position);
-  const dist2 = player.position.distanceTo(portal2.position);
-
-  if (canTeleport) {
-    if (dist1 < 0.8) player.position.set(-3.5, 0.5, 3.5);
-    if (dist2 < 0.8) player.position.set(3.5, 0.5, -3.5);
   }
 
   portal1.rotation.y += 0.02;
