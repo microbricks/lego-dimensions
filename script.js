@@ -1,9 +1,9 @@
 /* ============================================================
-   TOY PAD
+   TOY PAD – simpele versie
 ============================================================ */
 const figures = {
   batman: { name: "Batman", power: "speed", description: "Verhoogt loopsnelheid.", color: "#29b6f6" },
-  gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals / toren.", color: "#ab47bc" },
+  gandalf: { name: "Gandalf", power: "teleport", description: "Teleporteert naar portals.", color: "#ab47bc" },
   robot: { name: "Robot", power: "jump", description: "Geeft extra hoge sprong.", color: "#ffd600" }
 };
 
@@ -15,6 +15,9 @@ const openPadBtn = document.getElementById("open-pad-btn");
 const closePadBtn = document.getElementById("close-pad-btn");
 const figuresContainer = document.getElementById("figures");
 const padOutput = document.getElementById("pad-output");
+const joyIcon = document.getElementById("joycon-icon");
+const joyText = document.getElementById("joycon-text");
+const debugBox = document.getElementById("debug-box");
 
 openPadBtn.onclick = () => padOverlay.style.display = "flex";
 closePadBtn.onclick = () => padOverlay.style.display = "none";
@@ -71,99 +74,85 @@ function placeFigureOnZone(figureId, zoneId) {
 }
 
 /* ============================================================
-   GAMEPAD API + JOY-CON AUTO MAPPING (iPad compatible)
+   Powers uit Toy Pad
 ============================================================ */
+let speedMultiplier = 1;
+let jumpStrength = 0.18;
+let canTeleport = false;
+
+function applyPowersFromZones() {
+  speedMultiplier = 1;
+  jumpStrength = 0.18;
+  canTeleport = false;
+
+  Object.values(zoneState).forEach(id => {
+    if (!id) return;
+    if (id === "batman") speedMultiplier *= 1.4;
+    if (id === "robot") jumpStrength *= 1.4;
+    if (id === "gandalf") canTeleport = true;
+  });
+}
+
+/* ============================================================
+   Keyboard + (optioneel) Gamepad
+============================================================ */
+let keys = {};
+window.onkeydown = e => keys[e.key] = true;
+window.onkeyup = e => keys[e.key] = false;
 
 let joy = {
   lx: 0, ly: 0,
   rx: 0, ry: 0,
-  a: false,
-  sl: false, sr: false,
-  zl: false, zr: false,
-  home: false
+  a: false
 };
 
-const joyIcon = document.getElementById("joycon-icon");
-const joyText = document.getElementById("joycon-text");
-const debugBox = document.getElementById("debug-box");
-
 function updateJoyConStatus() {
-  const pads = navigator.getGamepads();
-  if (!pads) return;
-
-  let found = false;
-
-  for (const pad of pads) {
-    if (!pad) continue;
-
-    if (pad.id.includes("Joy-Con")) {
-      found = true;
-      joyIcon.textContent = "🟩";
-      joyText.textContent = "Joy-Cons verbonden (iPad mode)";
-    }
-  }
-
-  if (!found) {
-    joyIcon.textContent = "🟥";
-    joyText.textContent = "Geen Joy-Cons verbonden";
-  }
-}
-
-window.addEventListener("gamepadconnected", updateJoyConStatus);
-window.addEventListener("gamepaddisconnected", updateJoyConStatus);
-
-function readGamepads() {
-  const pads = navigator.getGamepads();
+  const pads = navigator.getGamepads?.();
   if (!pads) {
-    requestAnimationFrame(readGamepads);
+    joyIcon.textContent = "🟥";
+    joyText.textContent = "Gamepad: geen verbonden";
     return;
   }
 
+  let found = false;
   let debugText = "";
-
-  joy = { lx:0, ly:0, rx:0, ry:0, a:false, sl:false, sr:false, zl:false, zr:false, home:false };
 
   for (const pad of pads) {
     if (!pad) continue;
-
-    debugText += `\n${pad.id}\n`;
-
-    pad.axes.forEach((v, i) => {
-      debugText += `axis[${i}]: ${v.toFixed(2)}\n`;
-    });
-
-    pad.buttons.forEach((b, i) => {
-      debugText += `btn[${i}]: ${b.pressed ? "1" : "0"} `;
-    });
-
+    debugText += `${pad.id}\n`;
+    pad.axes.forEach((v, i) => debugText += `axis[${i}]: ${v.toFixed(2)}\n`);
+    pad.buttons.forEach((b, i) => debugText += `btn[${i}]: ${b.pressed ? "1" : "0"} `);
     debugText += "\n----------------------\n";
 
     if (pad.id.includes("Joy-Con")) {
+      found = true;
       joy.lx = pad.axes[0] ?? 0;
       joy.ly = pad.axes[1] ?? 0;
       joy.rx = pad.axes[2] ?? 0;
       joy.ry = pad.axes[3] ?? 0;
-
       joy.a  = pad.buttons[0]?.pressed || false;
-      joy.sl = pad.buttons[4]?.pressed || false;
-      joy.sr = pad.buttons[5]?.pressed || false;
-      joy.zl = pad.buttons[6]?.pressed || false;
-      joy.zr = pad.buttons[7]?.pressed || false;
-      joy.home = pad.buttons[12]?.pressed || false;
     }
   }
 
-  debugBox.innerText = debugText;
-  updateJoyConStatus();
-  requestAnimationFrame(readGamepads);
+  debugBox.innerText = debugText || "Joy-Con debug...";
+  if (found) {
+    joyIcon.textContent = "🟩";
+    joyText.textContent = "Joy-Cons verbonden (optioneel)";
+  } else {
+    joyIcon.textContent = "🟥";
+    joyText.textContent = "Gamepad: geen verbonden";
+  }
 }
 
-readGamepads();
+function pollGamepads() {
+  updateJoyConStatus();
+  requestAnimationFrame(pollGamepads);
+}
+pollGamepads();
 
 /* ============================================================
-   LEGO BATMAN SPELER MET ARM-PIVOT + CAPE + MASKER
+   LEGO BATMAN SPELER ZONDER CAPE
 ============================================================ */
-
 function createLegoPlayer() {
   const group = new THREE.Group();
 
@@ -171,9 +160,7 @@ function createLegoPlayer() {
   const blue   = new THREE.MeshLambertMaterial({ color: 0x1e88e5 });
   const black  = new THREE.MeshLambertMaterial({ color: 0x000000 });
 
-  /* ------------------------------
-     🦇 BATMAN MASKER
-  ------------------------------ */
+  // BATMAN MASKER
   const mask = new THREE.Group();
 
   const helmet = new THREE.Mesh(
@@ -204,9 +191,7 @@ function createLegoPlayer() {
   group.add(mask);
   group.mask = mask;
 
-  /* ------------------------------
-     🦇 LICHAAM + LOGO + BELT
-  ------------------------------ */
+  // LICHAAM + LOGO + BELT
   const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), black);
   body.position.set(0, 0.65, 0);
   group.add(body);
@@ -241,9 +226,7 @@ function createLegoPlayer() {
     group.add(pouch);
   }
 
-  /* ------------------------------
-     🦇 BENEN
-  ------------------------------ */
+  // BENEN
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
   legL.position.set(-0.15, 0.25, 0);
   group.add(legL);
@@ -252,9 +235,7 @@ function createLegoPlayer() {
   legR.position.set(0.15, 0.25, 0);
   group.add(legR);
 
-  /* ------------------------------
-     🦇 ARMEN MET PIVOT
-  ------------------------------ */
+  // ARMEN MET PIVOT
   const armPivotL = new THREE.Group();
   armPivotL.position.set(-0.4, 0.75, 0);
   group.add(armPivotL);
@@ -271,9 +252,7 @@ function createLegoPlayer() {
   armR.position.set(0, -0.275, 0);
   armPivotR.add(armR);
 
-  /* ------------------------------
-     🦇 BATARANG
-  ------------------------------ */
+  // BATARANG
   const batarang = new THREE.Mesh(
     new THREE.BoxGeometry(0.35, 0.10, 0.02),
     black
@@ -282,34 +261,7 @@ function createLegoPlayer() {
   batarang.rotation.z = Math.PI * 0.25;
   group.add(batarang);
 
-  /* ------------------------------
-     🦇 BATMAN CAPE
-  ------------------------------ */
-  const capeShape = new THREE.Shape();
-  capeShape.moveTo(-0.35, 0.45);
-  capeShape.lineTo(0.35, 0.45);
-  capeShape.lineTo(0.45, -0.1);
-  capeShape.lineTo(0.25, -0.45);
-  capeShape.lineTo(0, -0.25);
-  capeShape.lineTo(-0.25, -0.45);
-  capeShape.lineTo(-0.45, -0.1);
-  capeShape.lineTo(-0.35, 0.45);
-
-  const capeGeo = new THREE.ExtrudeGeometry(capeShape, {
-    depth: 0.05,
-    bevelEnabled: false
-  });
-
-  const cape = new THREE.Mesh(capeGeo, black);
-  cape.position.set(0, 0.65, -0.20);
-  cape.rotation.x = Math.PI;
-
-  group.cape = cape;
-  group.add(cape);
-
-  /* ------------------------------
-     REFERENTIES
-  ------------------------------ */
+  // REFERENTIES
   group.armPivotL = armPivotL;
   group.armPivotR = armPivotR;
   group.armL = armL;
@@ -322,19 +274,12 @@ function createLegoPlayer() {
 }
 
 /* ============================================================
-   3D GAME (Three.js)
+   THREE.JS SCENE
 ============================================================ */
 let scene, camera, renderer;
 let player, portal1, portal2;
-let keys = {};
 let velocityY = 0;
 let onGround = true;
-
-const baseSpeed = 0.08;
-let speedMultiplier = 1;
-let jumpStrength = 0.18;
-let canTeleport = false;
-
 let walkCycle = 0;
 
 function init3D() {
@@ -342,7 +287,12 @@ function init3D() {
   scene.background = new THREE.Color(0x050814);
   scene.fog = new THREE.Fog(0x050814, 8, 25);
 
-  camera = new THREE.PerspectiveCamera(70, window.innerWidth / window.innerHeight, 0.1, 100);
+  camera = new THREE.PerspectiveCamera(
+    70,
+    window.innerWidth / window.innerHeight,
+    0.1,
+    100
+  );
   camera.position.set(0, 3, 6);
 
   renderer = new THREE.WebGLRenderer({ antialias: false });
@@ -354,19 +304,15 @@ function init3D() {
   scene.add(light);
 
   const matFloor = new THREE.MeshLambertMaterial({ color: 0x111633 });
-  const matWall = new THREE.MeshLambertMaterial({ color: 0x283593 });
-  const matPillar = new THREE.MeshLambertMaterial({ color: 0x3949ab });
-  const matTower = new THREE.MeshLambertMaterial({ color: 0x1a237e });
-  const matBridge = new THREE.MeshLambertMaterial({ color: 0xa36a4f });
-  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x29b6f6 });
-  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xab47bc });
-
   const floor = new THREE.Mesh(new THREE.BoxGeometry(10, 0.2, 10), matFloor);
   floor.position.y = -0.1;
   scene.add(floor);
 
   player = createLegoPlayer();
   scene.add(player);
+
+  const matPortal1 = new THREE.MeshLambertMaterial({ color: 0x29b6f6 });
+  const matPortal2 = new THREE.MeshLambertMaterial({ color: 0xab47bc });
 
   portal1 = new THREE.Mesh(new THREE.CylinderGeometry(0.6, 0.6, 0.1, 16), matPortal1);
   portal1.rotation.x = -Math.PI / 2;
@@ -379,8 +325,9 @@ function init3D() {
   scene.add(portal2);
 
   window.onresize = onWindowResize;
-  window.onkeydown = e => keys[e.key] = true;
-  window.onkeyup = e => keys[e.key] = false;
+
+  renderFigures();
+  applyPowersFromZones();
 
   animate();
 }
@@ -391,8 +338,11 @@ function onWindowResize() {
   renderer.setSize(window.innerWidth, window.innerHeight);
 }
 
+/* ============================================================
+   PLAYER UPDATE + CAMERA ROTATIE
+============================================================ */
 function updatePlayer(delta) {
-  const speed = baseSpeed * speedMultiplier;
+  const speed = 0.08 * speedMultiplier;
 
   let moveX = joy.lx * speed;
   let moveZ = joy.ly * speed;
@@ -415,28 +365,66 @@ function updatePlayer(delta) {
     player.armPivotR.rotation.x = -swing;
     player.legL.rotation.x = -swing;
     player.legR.rotation.x = swing;
-
-    player.cape.rotation.x = THREE.MathUtils.lerp(player.cape.rotation.x, swing * 0.5, 0.25);
-    player.cape.rotation.z = THREE.MathUtils.lerp(player.cape.rotation.z, swing * 0.15, 0.15);
   } else if (onGround) {
     player.armPivotL.rotation.x *= 0.8;
     player.armPivotR.rotation.x *= 0.8;
     player.legL.rotation.x *= 0.8;
     player.legR.rotation.x *= 0.8;
-
-    player.cape.rotation.x *= 0.75;
-    player.cape.rotation.z *= 0.75;
   }
 
   const jumpPressed =
-    joy.a || joy.sl || joy.sr || joy.zl || joy.zr ||
-    joy.ly < -0.7 || joy.ry < -0.7 ||
-    keys[" "];
+    joy.a ||
+    keys[" "] ||
+    keys["ArrowUp"] && !onGround; // extra check kan weg, maar laat staan
 
-  if (jumpPressed && onGround) {
+  if ((joy.a || keys[" "]) && onGround) {
     velocityY = jumpStrength;
     onGround = false;
   }
 
-  if (!onGround) {
-    player.armPivotL.rotation.x = THREE.MathUtils.lerp(player.armPivotL.rotation.x, -1.2, 0.2
+  velocityY -= 0.008;
+  player.position.y += velocityY;
+
+  if (player.position.y <= 0.5) {
+    player.position.y = 0.5;
+    velocityY = 0;
+    onGround = true;
+  }
+
+  // Teleport als Gandalf-power actief is
+  if (canTeleport && keys["t"]) {
+    const dist1 = player.position.distanceTo(portal1.position);
+    const dist2 = player.position.distanceTo(portal2.position);
+    if (dist1 < 1.0) player.position.copy(portal2.position).add(new THREE.Vector3(0, 0.5, 0));
+    else if (dist2 < 1.0) player.position.copy(portal1.position).add(new THREE.Vector3(0, 0.5, 0));
+  }
+
+  // CAMERA ROTATIE MET ARROW KEYS
+  const rotSpeed = 0.02;
+  if (keys["ArrowLeft"]) {
+    camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), rotSpeed);
+  }
+  if (keys["ArrowRight"]) {
+    camera.position.applyAxisAngle(new THREE.Vector3(0, 1, 0), -rotSpeed);
+  }
+  camera.lookAt(player.position);
+}
+
+/* ============================================================
+   ANIMATE LOOP
+============================================================ */
+let lastTime = performance.now();
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const delta = (now - lastTime) / 16.67;
+  lastTime = now;
+
+  updatePlayer(delta);
+  renderer.render(scene, camera);
+}
+
+/* ============================================================
+   START
+============================================================ */
+window.addEventListener("load", init3D);
