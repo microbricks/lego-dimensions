@@ -1,144 +1,108 @@
 /* ============================================================
    UI ELEMENTS
 ============================================================ */
-const padOverlay = document.getElementById("pad-overlay");
+const loadingScreen   = document.getElementById("loading-screen");
+const padOverlay      = document.getElementById("pad-overlay");
 const settingsOverlay = document.getElementById("settings-overlay");
 const figuresContainer = document.getElementById("figures");
-const skinsContainer = document.getElementById("skins");
-const padOutput = document.getElementById("pad-output");
-const fpsCounter = document.getElementById("fps-counter");
+const padOutput       = document.getElementById("pad-output");
+const fpsCounter      = document.getElementById("fps-counter");
 
 /* Buttons */
-document.getElementById("open-pad-btn").onclick = () => padOverlay.style.display = "flex";
-document.getElementById("close-pad-btn").onclick = () => padOverlay.style.display = "none";
-document.getElementById("open-settings-btn").onclick = () => settingsOverlay.style.display = "flex";
+document.getElementById("open-pad-btn").onclick   = () => padOverlay.style.display = "flex";
+document.getElementById("close-pad-btn").onclick  = () => padOverlay.style.display = "none";
+document.getElementById("open-settings-btn").onclick  = () => settingsOverlay.style.display = "flex";
 document.getElementById("close-settings-btn").onclick = () => settingsOverlay.style.display = "none";
 
+/* Settings controls */
+const toggleShadows      = document.getElementById("toggle-shadows");
+const renderScale        = document.getElementById("render-scale");
+const toggleCameraRotate = document.getElementById("toggle-camera-rotate");
+const toggleFPS          = document.getElementById("toggle-fps");
+
 /* ============================================================
-   CHARACTER + SKIN DATA
+   FIGURES + ZONES
 ============================================================ */
 const figures = {
-  batman: {
-    name: "Batman",
-    skins: ["classic", "blue", "dark"]
-  },
-  superman: {
-    name: "Superman",
-    skins: ["classic", "black"]
-  },
-  flash: {
-    name: "The Flash",
-    skins: ["classic", "yellow"]
-  },
-  joker: {
-    name: "Joker",
-    skins: ["classic", "purple"]
-  }
+  batman:   { name: "Batman",   color: 0x000000 },
+  gandalf:  { name: "Gandalf",  color: 0xcccccc },
+  robot:    { name: "Robot",    color: 0xffd600 },
+  wyldstyle:{ name: "Wyldstyle",color: 0xff4081 }
 };
 
-let selectedFigure = null;
-let selectedSkin = null;
+let selectedFigureId = null;
+const zoneState = { left: null, middle: null, right: null };
 
-/* ============================================================
-   RENDER FIGURES
-============================================================ */
+/* Render figures in Toy Pad */
 function renderFigures() {
   figuresContainer.innerHTML = "";
-
   for (const [id, fig] of Object.entries(figures)) {
     const btn = document.createElement("button");
     btn.className = "figure";
     btn.textContent = fig.name;
-
     btn.onclick = () => {
-      selectedFigure = id;
-      selectedSkin = fig.skins[0];
-      renderSkins(id);
-      padOutput.textContent = `${fig.name} geselecteerd. Kies een skin.`;
+      selectedFigureId = id;
+      padOutput.textContent = `${fig.name} geselecteerd. Klik een zone.`;
+      document.querySelectorAll(".figure").forEach(el =>
+        el.classList.toggle("active", el.textContent === fig.name)
+      );
     };
-
     figuresContainer.appendChild(btn);
   }
 }
 
-/* ============================================================
-   RENDER SKINS
-============================================================ */
-function renderSkins(figureId) {
-  skinsContainer.innerHTML = "";
-
-  const fig = figures[figureId];
-
-  fig.skins.forEach(skinId => {
-    const btn = document.createElement("button");
-    btn.className = "figure";
-    btn.textContent = skinId;
-
-    btn.onclick = () => {
-      selectedSkin = skinId;
-      padOutput.textContent = `Skin "${skinId}" geselecteerd. Klik een zone.`;
-    };
-
-    skinsContainer.appendChild(btn);
-  });
-}
-
-/* ============================================================
-   PLACE FIGURE ON ZONE
-============================================================ */
+/* Zones klikken */
 document.querySelectorAll(".zone").forEach(zone => {
   zone.onclick = () => {
-    if (!selectedFigure || !selectedSkin) return;
-
-    const className = `skin-${selectedFigure}-${selectedSkin}`;
-    const color = getSkinColor(selectedFigure, selectedSkin);
-
-    zone.style.boxShadow = `0 0 16px ${color}`;
-    zone.style.borderColor = color;
-    zone.querySelector("span").textContent =
-      `${figures[selectedFigure].name} (${selectedSkin})`;
-
-    spawnFigure(selectedFigure, selectedSkin);
+    if (!selectedFigureId) return;
+    const zoneId = zone.dataset.zone;
+    placeFigureOnZone(selectedFigureId, zoneId);
   };
 });
 
-/* ============================================================
-   GET SKIN COLOR FROM CSS
-============================================================ */
-function getSkinColor(figureId, skinId) {
-  const temp = document.createElement("div");
-  temp.className = `skin-${figureId}-${skinId}`;
-  document.body.appendChild(temp);
+function placeFigureOnZone(figureId, zoneId) {
+  const fig = figures[figureId];
+  zoneState[zoneId] = figureId;
 
-  const color = getComputedStyle(temp).getPropertyValue("--skin-color").trim();
-  temp.remove();
+  const zoneEl = document.querySelector(`.zone[data-zone="${zoneId}"]`);
+  zoneEl.querySelector("span").textContent = fig.name;
+  zoneEl.style.borderColor = "#fff";
+  zoneEl.style.boxShadow = "0 0 16px rgba(255,255,255,0.6)";
 
-  return color;
+  padOutput.textContent = `${fig.name} geplaatst op zone ${zoneId}.`;
+  spawnFigure(figureId);
 }
 
 /* ============================================================
-   SPAWN FIGURE IN 3D WORLD
+   INPUT
 ============================================================ */
-let player;
+let keys = {};
+window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keyup",   e => keys[e.key] = false);
 
-function spawnFigure(figureId, skinId) {
-  if (player) scene.remove(player);
+/* ============================================================
+   THREE.JS
+============================================================ */
+let scene, camera, renderer, player;
+let velocityY = 0;
+let onGround = true;
+let cameraRotationEnabled = true;
 
-  const color = getSkinColor(figureId, skinId);
-
-  player = new THREE.Mesh(
+function createFigureMesh(fig) {
+  const mesh = new THREE.Mesh(
     new THREE.BoxGeometry(0.6, 1.1, 0.6),
-    new THREE.MeshLambertMaterial({ color })
+    new THREE.MeshLambertMaterial({ color: fig.color })
   );
+  mesh.position.y = 0.55;
+  return mesh;
+}
 
-  player.position.y = 0.55;
+function spawnFigure(id) {
+  if (player) scene.remove(player);
+  const fig = figures[id];
+  player = createFigureMesh(fig);
   scene.add(player);
 }
-
-/* ============================================================
-   THREE.JS SETUP
-============================================================ */
-let scene, camera, renderer;
 
 function init3D() {
   scene = new THREE.Scene();
@@ -151,7 +115,8 @@ function init3D() {
   renderer.setSize(innerWidth, innerHeight);
   document.body.appendChild(renderer.domElement);
 
-  scene.add(new THREE.HemisphereLight(0xffffff, 0x202020, 1.2));
+  const light = new THREE.HemisphereLight(0xffffff, 0x202020, 1.2);
+  scene.add(light);
 
   const floor = new THREE.Mesh(
     new THREE.BoxGeometry(20, 0.2, 20),
@@ -160,14 +125,95 @@ function init3D() {
   floor.position.y = -0.1;
   scene.add(floor);
 
+  // Default figuur
+  spawnFigure("batman");
+
+  // Settings hooks
+  toggleShadows.onchange = () => {
+    renderer.shadowMap.enabled = toggleShadows.checked;
+  };
+
+  renderScale.onchange = () => {
+    renderer.setPixelRatio(window.devicePixelRatio * parseFloat(renderScale.value));
+    renderer.setSize(innerWidth, innerHeight);
+  };
+
+  toggleCameraRotate.onchange = () => {
+    cameraRotationEnabled = toggleCameraRotate.checked;
+  };
+
+  toggleFPS.onchange = () => {
+    fpsCounter.style.display = toggleFPS.checked ? "block" : "none";
+  };
+
+  // Loading screen weg
+  setTimeout(() => {
+    loadingScreen.style.opacity = "0";
+    setTimeout(() => loadingScreen.remove(), 300);
+  }, 500);
+
   animate();
 }
 
 /* ============================================================
-   ANIMATION LOOP
+   UPDATE + ANIMATE
 ============================================================ */
-function animate() {
+let last = performance.now();
+let frames = 0;
+let lastFPSUpdate = 0;
+
+function updatePlayer(delta) {
+  if (!player) return;
+
+  const speed = 0.08;
+
+  let mx = 0, mz = 0;
+  if (keys["w"]) mz -= speed;
+  if (keys["s"]) mz += speed;
+  if (keys["a"]) mx -= speed;
+  if (keys["d"]) mx += speed;
+
+  player.position.x += mx;
+  player.position.z += mz;
+
+  if (keys[" "] && onGround) {
+    velocityY = 0.22;
+    onGround = false;
+  }
+
+  velocityY -= 0.008;
+  player.position.y += velocityY;
+
+  if (player.position.y <= 0.55) {
+    player.position.y = 0.55;
+    velocityY = 0;
+    onGround = true;
+  }
+
+  if (cameraRotationEnabled) {
+    if (keys["ArrowLeft"])
+      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), 0.02);
+    if (keys["ArrowRight"])
+      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -0.02);
+  }
+
+  camera.lookAt(player.position);
+}
+
+function animate(now) {
   requestAnimationFrame(animate);
+
+  frames++;
+  if (now - lastFPSUpdate > 1000) {
+    fpsCounter.textContent = "FPS: " + frames;
+    frames = 0;
+    lastFPSUpdate = now;
+  }
+
+  const delta = (now - last) / 16.67;
+  last = now;
+
+  updatePlayer(delta);
   renderer.render(scene, camera);
 }
 
