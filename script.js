@@ -1,4 +1,9 @@
 /* ============================================================
+   LOADING SCREEN
+============================================================ */
+const loadingScreen = document.getElementById("loading-screen");
+
+/* ============================================================
    TOY PAD
 ============================================================ */
 const figures = {
@@ -213,6 +218,12 @@ function init3D() {
 
   player = createBatman();
   scene.add(player);
+
+  /* LOADING SCREEN FADE OUT */
+  setTimeout(() => {
+    loadingScreen.style.opacity = "0";
+    setTimeout(() => loadingScreen.remove(), 300);
+  }, 300);
 
   animate();
 }
