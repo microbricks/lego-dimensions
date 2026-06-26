@@ -40,13 +40,16 @@ function renderFigures() {
     const btn = document.createElement("button");
     btn.className = "figure";
     btn.textContent = fig.name;
+
     btn.onclick = () => {
       selectedFigureId = id;
       padOutput.textContent = `${fig.name} geselecteerd. Klik een zone.`;
+
       document.querySelectorAll(".figure").forEach(el =>
         el.classList.toggle("active", el.textContent === fig.name)
       );
     };
+
     figuresContainer.appendChild(btn);
   }
 }
@@ -125,7 +128,6 @@ function init3D() {
   floor.position.y = -0.1;
   scene.add(floor);
 
-  // Default figuur
   spawnFigure("batman");
 
   // Settings hooks
@@ -166,16 +168,21 @@ function updatePlayer(delta) {
   if (!player) return;
 
   const speed = 0.08;
+  const move = new THREE.Vector3();
 
-  let mx = 0, mz = 0;
-  if (keys["w"]) mz -= speed;
-  if (keys["s"]) mz += speed;
-  if (keys["a"]) mx -= speed;
-  if (keys["d"]) mx += speed;
+  // SPELER BEWEEGT IN CAMERA-RICHTING
+  if (keys["w"]) move.z -= 1;
+  if (keys["s"]) move.z += 1;
+  if (keys["a"]) move.x -= 1;
+  if (keys["d"]) move.x += 1;
 
-  player.position.x += mx;
-  player.position.z += mz;
+  if (move.length() > 0) {
+    move.normalize();
+    move.applyAxisAngle(new THREE.Vector3(0,1,0), camera.rotation.y);
+    player.position.add(move.multiplyScalar(speed));
+  }
 
+  // SPRINGEN
   if (keys[" "] && onGround) {
     velocityY = 0.22;
     onGround = false;
@@ -190,12 +197,13 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  if (cameraRotationEnabled) {
-    if (keys["ArrowLeft"])
-      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), 0.02);
-    if (keys["ArrowRight"])
-      camera.position.applyAxisAngle(new THREE.Vector3(0,1,0), -0.02);
-  }
+  // CAMERA VOLGT SPELER
+  const offset = new THREE.Vector3(0, 3, 6);
+  const rotatedOffset = offset.clone().applyAxisAngle(
+    new THREE.Vector3(0,1,0),
+    camera.rotation.y
+  );
+  camera.position.copy(player.position.clone().add(rotatedOffset));
 
   camera.lookAt(player.position);
 }
