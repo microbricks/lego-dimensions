@@ -42,9 +42,10 @@
       margin-top: 6px;
     }
 
-    #joycon-status {
-      margin-top: 8px;
+    #joycon-status, #fps-counter {
+      margin-top: 6px;
       font-size: 14px;
+      opacity: 0.85;
     }
 
     /* Toy Pad overlay */
@@ -120,6 +121,8 @@
       <span id="joycon-icon">🟥</span>
       <span id="joycon-text">Gamepad: geen verbonden</span>
     </div>
+
+    <div id="fps-counter">FPS: 0</div>
   </div>
 
   <!-- Toy Pad Overlay -->
@@ -148,7 +151,7 @@
   <!-- Three.js -->
   <script src="https://unpkg.com/three@0.160.0/build/three.min.js"></script>
 
-  <!-- JOUW SCRIPT -->
+  <!-- Main Script -->
   <script src="script.js"></script>
 
 </body>
