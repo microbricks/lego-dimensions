@@ -18,7 +18,9 @@
   <!-- HUD -->
   <div id="hud">
     <div id="hud-title">LEGO DIMENSIONS</div>
+
     <button id="open-pad-btn" class="hud-btn">Toy Pad</button>
+    <button id="open-settings-btn" class="hud-btn">Settings</button>
 
     <div id="joycon-status">
       <span id="joycon-icon">🟥</span>
@@ -45,6 +47,40 @@
       </div>
 
       <p id="pad-output">Nog geen figuur geplaatst.</p>
+    </div>
+  </div>
+
+  <!-- SETTINGS OVERLAY -->
+  <div id="settings-overlay">
+    <div id="settings-window">
+      <h2>Instellingen</h2>
+      <button id="close-settings-btn" class="hud-btn">Sluiten</button>
+
+      <h3>Grafisch</h3>
+      <label>
+        <input type="checkbox" id="toggle-shadows">
+        Schaduwen aan/uit
+      </label>
+
+      <label>
+        Renderkwaliteit:
+        <select id="render-scale">
+          <option value="1">Hoog</option>
+          <option value="0.75">Medium</option>
+          <option value="0.5">Laag</option>
+        </select>
+      </label>
+
+      <h3>Gameplay</h3>
+      <label>
+        <input type="checkbox" id="toggle-camera-rotate" checked>
+        Camera rotatie met pijltjes
+      </label>
+
+      <label>
+        <input type="checkbox" id="toggle-fps" checked>
+        FPS‑counter tonen
+      </label>
     </div>
   </div>
 
