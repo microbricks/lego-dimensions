@@ -161,7 +161,7 @@ function readGamepads() {
 readGamepads();
 
 /* ============================================================
-   LEGO BLOK SPELER MET ARM-PIVOT
+   LEGO BATMAN SPELER MET ARM-PIVOT + CAPE + MASKER
 ============================================================ */
 
 function createLegoPlayer() {
@@ -169,19 +169,81 @@ function createLegoPlayer() {
 
   const yellow = new THREE.MeshLambertMaterial({ color: 0xffd600 });
   const blue   = new THREE.MeshLambertMaterial({ color: 0x1e88e5 });
-  const black  = new THREE.MeshLambertMaterial({ color: 0x212121 });
+  const black  = new THREE.MeshLambertMaterial({ color: 0x000000 });
 
-  // Hoofd
-  const head = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.45, 0.45), yellow);
-  head.position.set(0, 1.25, 0);
-  group.add(head);
+  /* ------------------------------
+     🦇 BATMAN MASKER
+  ------------------------------ */
+  const mask = new THREE.Group();
 
-  // Lichaam
-  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), blue);
+  const helmet = new THREE.Mesh(
+    new THREE.BoxGeometry(0.48, 0.50, 0.48),
+    black
+  );
+  helmet.position.set(0, 1.28, 0);
+  mask.add(helmet);
+
+  const earGeo = new THREE.BoxGeometry(0.12, 0.35, 0.12);
+  const earL = new THREE.Mesh(earGeo, black);
+  earL.position.set(-0.18, 1.55, 0);
+  mask.add(earL);
+
+  const earR = earL.clone();
+  earR.position.set(0.18, 1.55, 0);
+  mask.add(earR);
+
+  const eyeGeo = new THREE.BoxGeometry(0.12, 0.06, 0.02);
+  const eyeL = new THREE.Mesh(eyeGeo, new THREE.MeshLambertMaterial({ color: 0xffffff }));
+  eyeL.position.set(-0.12, 1.30, 0.25);
+  mask.add(eyeL);
+
+  const eyeR = eyeL.clone();
+  eyeR.position.set(0.12, 1.30, 0.25);
+  mask.add(eyeR);
+
+  group.add(mask);
+  group.mask = mask;
+
+  /* ------------------------------
+     🦇 LICHAAM + LOGO + BELT
+  ------------------------------ */
+  const body = new THREE.Mesh(new THREE.BoxGeometry(0.55, 0.75, 0.35), black);
   body.position.set(0, 0.65, 0);
   group.add(body);
 
-  // Benen
+  const logo = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35, 0.25, 0.02),
+    new THREE.MeshLambertMaterial({ color: 0xffff00 })
+  );
+  logo.position.set(0, 0.70, 0.20);
+  group.add(logo);
+
+  const bat = new THREE.Mesh(
+    new THREE.BoxGeometry(0.30, 0.12, 0.01),
+    black
+  );
+  bat.position.set(0, 0.70, 0.21);
+  group.add(bat);
+
+  const belt = new THREE.Mesh(
+    new THREE.BoxGeometry(0.60, 0.18, 0.30),
+    new THREE.MeshLambertMaterial({ color: 0xffd600 })
+  );
+  belt.position.set(0, 0.40, 0);
+  group.add(belt);
+
+  for (let i = -1; i <= 1; i++) {
+    const pouch = new THREE.Mesh(
+      new THREE.BoxGeometry(0.18, 0.18, 0.18),
+      black
+    );
+    pouch.position.set(i * 0.25, 0.40, 0.18);
+    group.add(pouch);
+  }
+
+  /* ------------------------------
+     🦇 BENEN
+  ------------------------------ */
   const legL = new THREE.Mesh(new THREE.BoxGeometry(0.25, 0.45, 0.35), black);
   legL.position.set(-0.15, 0.25, 0);
   group.add(legL);
@@ -190,16 +252,17 @@ function createLegoPlayer() {
   legR.position.set(0.15, 0.25, 0);
   group.add(legR);
 
-  // ⭐ ARM LINKS — pivot bij schouder
+  /* ------------------------------
+     🦇 ARMEN MET PIVOT
+  ------------------------------ */
   const armPivotL = new THREE.Group();
   armPivotL.position.set(-0.4, 0.75, 0);
   group.add(armPivotL);
 
-  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), yellow);
-  armL.position.set(0, -0.275, 0); // arm hangt omlaag → pivot = schouder
+  const armL = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.55, 0.18), black);
+  armL.position.set(0, -0.275, 0);
   armPivotL.add(armL);
 
-  // ⭐ ARM RECHTS — pivot bij schouder
   const armPivotR = new THREE.Group();
   armPivotR.position.set(0.4, 0.75, 0);
   group.add(armPivotR);
@@ -208,7 +271,45 @@ function createLegoPlayer() {
   armR.position.set(0, -0.275, 0);
   armPivotR.add(armR);
 
-  // Bewaar referenties
+  /* ------------------------------
+     🦇 BATARANG
+  ------------------------------ */
+  const batarang = new THREE.Mesh(
+    new THREE.BoxGeometry(0.35, 0.10, 0.02),
+    black
+  );
+  batarang.position.set(0.55, 0.75, 0);
+  batarang.rotation.z = Math.PI * 0.25;
+  group.add(batarang);
+
+  /* ------------------------------
+     🦇 BATMAN CAPE
+  ------------------------------ */
+  const capeShape = new THREE.Shape();
+  capeShape.moveTo(-0.35, 0.45);
+  capeShape.lineTo(0.35, 0.45);
+  capeShape.lineTo(0.45, -0.1);
+  capeShape.lineTo(0.25, -0.45);
+  capeShape.lineTo(0, -0.25);
+  capeShape.lineTo(-0.25, -0.45);
+  capeShape.lineTo(-0.45, -0.1);
+  capeShape.lineTo(-0.35, 0.45);
+
+  const capeGeo = new THREE.ExtrudeGeometry(capeShape, {
+    depth: 0.05,
+    bevelEnabled: false
+  });
+
+  const cape = new THREE.Mesh(capeGeo, black);
+  cape.position.set(0, 0.65, -0.20);
+  cape.rotation.x = Math.PI;
+
+  group.cape = cape;
+  group.add(cape);
+
+  /* ------------------------------
+     REFERENTIES
+  ------------------------------ */
   group.armPivotL = armPivotL;
   group.armPivotR = armPivotR;
   group.armL = armL;
@@ -296,10 +397,10 @@ function updatePlayer(delta) {
   let moveX = joy.lx * speed;
   let moveZ = joy.ly * speed;
 
-  if (keys["w"] || keys["ArrowUp"]) moveZ -= speed;
-  if (keys["s"] || keys["ArrowDown"]) moveZ += speed;
-  if (keys["a"] || keys["ArrowLeft"]) moveX -= speed;
-  if (keys["d"] || keys["ArrowRight"]) moveX += speed;
+  if (keys["w"]) moveZ -= speed;
+  if (keys["s"]) moveZ += speed;
+  if (keys["a"]) moveX -= speed;
+  if (keys["d"]) moveX += speed;
 
   player.position.x += moveX;
   player.position.z += moveZ;
@@ -314,11 +415,17 @@ function updatePlayer(delta) {
     player.armPivotR.rotation.x = -swing;
     player.legL.rotation.x = -swing;
     player.legR.rotation.x = swing;
+
+    player.cape.rotation.x = THREE.MathUtils.lerp(player.cape.rotation.x, swing * 0.5, 0.25);
+    player.cape.rotation.z = THREE.MathUtils.lerp(player.cape.rotation.z, swing * 0.15, 0.15);
   } else if (onGround) {
     player.armPivotL.rotation.x *= 0.8;
     player.armPivotR.rotation.x *= 0.8;
     player.legL.rotation.x *= 0.8;
     player.legR.rotation.x *= 0.8;
+
+    player.cape.rotation.x *= 0.75;
+    player.cape.rotation.z *= 0.75;
   }
 
   const jumpPressed =
@@ -332,73 +439,4 @@ function updatePlayer(delta) {
   }
 
   if (!onGround) {
-    player.armPivotL.rotation.x = THREE.MathUtils.lerp(player.armPivotL.rotation.x, -1.2, 0.2);
-    player.armPivotR.rotation.x = THREE.MathUtils.lerp(player.armPivotR.rotation.x, -1.2, 0.2);
-    player.legL.rotation.x = THREE.MathUtils.lerp(player.legL.rotation.x, 0.4, 0.2);
-    player.legR.rotation.x = THREE.MathUtils.lerp(player.legR.rotation.x, 0.4, 0.2);
-  }
-
-  velocityY -= 0.008;
-  player.position.y += velocityY;
-
-  if (player.position.y <= 0.5) {
-    player.position.y = 0.5;
-    velocityY = 0;
-    onGround = true;
-  }
-
-  camera.position.lerp(
-    new THREE.Vector3(
-      player.position.x + 2.5,
-      player.position.y + 2.0,
-      player.position.z + 3.5
-    ),
-    0.15
-  );
-  camera.lookAt(player.position);
-
-  camera.rotation.y -= joy.rx * 0.05;
-  camera.rotation.x -= joy.ry * 0.03;
-  camera.rotation.x = Math.max(-1, Math.min(1, camera.rotation.x));
-
-  if (joy.home) {
-    camera.position.set(player.position.x + 3, 3, player.position.z + 4);
-    camera.lookAt(player.position);
-  }
-
-  portal1.rotation.y += 0.02;
-  portal2.rotation.y -= 0.02;
-}
-
-let lastTime = 0;
-function animate(time) {
-  requestAnimationFrame(animate);
-  const delta = (time - lastTime) / 16.67;
-  lastTime = time;
-
-  updatePlayer(delta);
-  renderer.render(scene, camera);
-}
-
-/* ============================================================
-   POWERS
-============================================================ */
-function applyPowersFromZones() {
-  speedMultiplier = 1;
-  jumpStrength = 0.18;
-  canTeleport = false;
-
-  const activePowers = Object.values(zoneState)
-    .filter(Boolean)
-    .map(id => figures[id].power);
-
-  if (activePowers.includes("speed")) speedMultiplier = 2;
-  if (activePowers.includes("jump")) jumpStrength = 0.28;
-  if (activePowers.includes("teleport")) canTeleport = true;
-}
-
-/* ============================================================
-   INIT
-============================================================ */
-renderFigures();
-init3D();
+    player.armPivotL.rotation.x = THREE.MathUtils.lerp(player.armPivotL.rotation.x, -1.2, 0.2
