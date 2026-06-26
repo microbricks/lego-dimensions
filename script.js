@@ -77,11 +77,193 @@ function placeFigureOnZone(figureId, zoneId) {
 }
 
 /* ============================================================
-   INPUT
+   INPUT (KEYBOARD + MOUSE)
 ============================================================ */
 let keys = {};
-window.addEventListener("keydown", e => keys[e.key] = true);
+window.addEventListener("keydown", e => {
+  keys[e.key] = true;
+
+  // Editor toggle
+  if (e.key === "e") {
+    editorMode = !editorMode;
+    editorStatus.textContent = editorMode ? "Editor: AAN" : "Editor: UIT";
+  }
+
+  // Delete last object
+  if (e.key === "Backspace" && editorMode) {
+    const last = placedObjects.pop();
+    if (last) scene.remove(last.mesh);
+  }
+});
 window.addEventListener("keyup",   e => keys[e.key] = false);
+
+/* Muisbesturing */
+let mouseDown = false;
+let cameraYaw = 0;
+
+window.addEventListener("mousedown", e => {
+  if (e.button === 2) mouseDown = true; // rechter muisknop
+});
+window.addEventListener("mouseup", e => {
+  if (e.button === 2) mouseDown = false;
+});
+window.addEventListener("contextmenu", e => e.preventDefault());
+
+window.addEventListener("mousemove", e => {
+  if (!mouseDown) return;
+  const deltaX = e.movementX || 0;
+  cameraYaw -= deltaX * 0.003;
+  camera.rotation.y = cameraYaw;
+});
+
+/* ============================================================
+   LEVEL EDITOR
+============================================================ */
+let editorMode = false;
+let placedObjects = [];
+let currentType = "block";
+
+let editorStatus;
+
+function createEditorUI() {
+  const ui = document.createElement("div");
+  ui.id = "editor-ui";
+  ui.style.position = "fixed";
+  ui.style.top = "10px";
+  ui.style.right = "10px";
+  ui.style.background = "rgba(0,0,0,0.7)";
+  ui.style.padding = "10px";
+  ui.style.borderRadius = "8px";
+  ui.style.color = "#fff";
+  ui.style.fontSize = "12px";
+  ui.style.zIndex = "50";
+
+  editorStatus = document.createElement("div");
+  editorStatus.textContent = "Editor: UIT";
+  ui.appendChild(editorStatus);
+
+  const types = [
+    { id: "block", label: "Blok (groen)", color: 0x00ff00 },
+    { id: "wall",  label: "Muur (grijs)", color: 0x888888 },
+    { id: "lava",  label: "Lava (rood)",  color: 0xff0000 }
+  ];
+
+  const typeRow = document.createElement("div");
+  typeRow.style.marginTop = "6px";
+
+  types.forEach(t => {
+    const btn = document.createElement("button");
+    btn.textContent = t.label;
+    btn.style.marginRight = "4px";
+    btn.style.fontSize = "11px";
+    btn.onclick = () => {
+      currentType = t.id;
+    };
+    typeRow.appendChild(btn);
+  });
+
+  ui.appendChild(typeRow);
+
+  const saveBtn = document.createElement("button");
+  saveBtn.textContent = "Save level";
+  saveBtn.style.marginTop = "6px";
+  saveBtn.style.fontSize = "11px";
+  saveBtn.onclick = saveLevel;
+  ui.appendChild(saveBtn);
+
+  const loadBtn = document.createElement("button");
+  loadBtn.textContent = "Load level";
+  loadBtn.style.marginLeft = "4px";
+  loadBtn.style.fontSize = "11px";
+  loadBtn.onclick = loadLevel;
+  ui.appendChild(loadBtn);
+
+  const clearBtn = document.createElement("button");
+  clearBtn.textContent = "Clear level";
+  clearBtn.style.marginLeft = "4px";
+  clearBtn.style.fontSize = "11px";
+  clearBtn.onclick = clearLevel;
+  ui.appendChild(clearBtn);
+
+  document.body.appendChild(ui);
+}
+
+window.addEventListener("click", e => {
+  if (!editorMode) return;
+
+  const mouse = new THREE.Vector2(
+    (e.clientX / window.innerWidth) * 2 - 1,
+    -(e.clientY / window.innerHeight) * 2 + 1
+  );
+
+  const raycaster = new THREE.Raycaster();
+  raycaster.setFromCamera(mouse, camera);
+
+  const intersects = raycaster.intersectObjects(scene.children);
+
+  if (intersects.length > 0) {
+    const point = intersects[0].point;
+
+    const { mesh, type } = createEditorObject(currentType, point);
+    scene.add(mesh);
+    placedObjects.push({ mesh, type });
+  }
+});
+
+function createEditorObject(type, point) {
+  let color = 0x00ff00;
+  let size = new THREE.Vector3(1,1,1);
+
+  if (type === "wall") {
+    color = 0x888888;
+    size.set(1,2,0.3);
+  } else if (type === "lava") {
+    color = 0xff0000;
+    size.set(1,0.2,1);
+  }
+
+  const mesh = new THREE.Mesh(
+    new THREE.BoxGeometry(size.x, size.y, size.z),
+    new THREE.MeshLambertMaterial({ color })
+  );
+
+  mesh.position.set(
+    Math.round(point.x),
+    type === "wall" ? 1 : 0.1,
+    Math.round(point.z)
+  );
+
+  return { mesh, type };
+}
+
+/* Save / Load / Clear */
+function saveLevel() {
+  const data = placedObjects.map(o => ({
+    type: o.type,
+    x: o.mesh.position.x,
+    y: o.mesh.position.y,
+    z: o.mesh.position.z
+  }));
+  localStorage.setItem("lego_level", JSON.stringify(data));
+}
+
+function loadLevel() {
+  clearLevel();
+  const raw = localStorage.getItem("lego_level");
+  if (!raw) return;
+  const data = JSON.parse(raw);
+  data.forEach(d => {
+    const { mesh, type } = createEditorObject(d.type, new THREE.Vector3(d.x, d.y, d.z));
+    mesh.position.set(d.x, d.y, d.z);
+    scene.add(mesh);
+    placedObjects.push({ mesh, type });
+  });
+}
+
+function clearLevel() {
+  placedObjects.forEach(o => scene.remove(o.mesh));
+  placedObjects = [];
+}
 
 /* ============================================================
    THREE.JS
@@ -113,6 +295,7 @@ function init3D() {
 
   camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 100);
   camera.position.set(0, 3, 6);
+  cameraYaw = camera.rotation.y;
 
   renderer = new THREE.WebGLRenderer();
   renderer.setSize(innerWidth, innerHeight);
@@ -130,7 +313,6 @@ function init3D() {
 
   spawnFigure("batman");
 
-  // Settings hooks
   toggleShadows.onchange = () => {
     renderer.shadowMap.enabled = toggleShadows.checked;
   };
@@ -148,12 +330,12 @@ function init3D() {
     fpsCounter.style.display = toggleFPS.checked ? "block" : "none";
   };
 
-  // Loading screen weg
   setTimeout(() => {
     loadingScreen.style.opacity = "0";
     setTimeout(() => loadingScreen.remove(), 300);
   }, 500);
 
+  createEditorUI();
   animate();
 }
 
@@ -170,7 +352,6 @@ function updatePlayer(delta) {
   const speed = 0.08;
   const move = new THREE.Vector3();
 
-  // SPELER BEWEEGT IN CAMERA-RICHTING
   if (keys["w"]) move.z -= 1;
   if (keys["s"]) move.z += 1;
   if (keys["a"]) move.x -= 1;
@@ -182,7 +363,6 @@ function updatePlayer(delta) {
     player.position.add(move.multiplyScalar(speed));
   }
 
-  // SPRINGEN
   if (keys[" "] && onGround) {
     velocityY = 0.22;
     onGround = false;
@@ -197,7 +377,6 @@ function updatePlayer(delta) {
     onGround = true;
   }
 
-  // CAMERA VOLGT SPELER
   const offset = new THREE.Vector3(0, 3, 6);
   const rotatedOffset = offset.clone().applyAxisAngle(
     new THREE.Vector3(0,1,0),
