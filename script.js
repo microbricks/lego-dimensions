@@ -91,9 +91,12 @@ document.querySelectorAll(".zone").forEach(zone => {
     if (!selectedFigure || !selectedSkin) return;
 
     const className = `skin-${selectedFigure}-${selectedSkin}`;
-    zone.style.boxShadow = `0 0 16px var(--skin-color)`;
-    zone.style.borderColor = "var(--skin-color)";
-    zone.querySelector("span").textContent = `${figures[selectedFigure].name} (${selectedSkin})`;
+    const color = getSkinColor(selectedFigure, selectedSkin);
+
+    zone.style.boxShadow = `0 0 16px ${color}`;
+    zone.style.borderColor = color;
+    zone.querySelector("span").textContent =
+      `${figures[selectedFigure].name} (${selectedSkin})`;
 
     spawnFigure(selectedFigure, selectedSkin);
   };
@@ -116,6 +119,8 @@ function getSkinColor(figureId, skinId) {
 /* ============================================================
    SPAWN FIGURE IN 3D WORLD
 ============================================================ */
+let player;
+
 function spawnFigure(figureId, skinId) {
   if (player) scene.remove(player);
 
@@ -133,7 +138,7 @@ function spawnFigure(figureId, skinId) {
 /* ============================================================
    THREE.JS SETUP
 ============================================================ */
-let scene, camera, renderer, player;
+let scene, camera, renderer;
 
 function init3D() {
   scene = new THREE.Scene();
