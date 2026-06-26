@@ -87,6 +87,11 @@ body {
   border: 1px solid rgba(255,255,255,0.2);
 }
 
+#figures {
+  display: flex;
+  flex-wrap: wrap;
+}
+
 .figure {
   padding: 8px 12px;
   margin: 4px;
@@ -94,10 +99,16 @@ body {
   border: 1px solid white;
   background: #222;
   cursor: pointer;
+  font-size: 14px;
 }
 
 .figure.active {
   background: #3949ab;
+}
+
+#zones {
+  display: flex;
+  justify-content: center;
 }
 
 .zone {
@@ -110,6 +121,7 @@ body {
   align-items: center;
   margin: 10px;
   cursor: pointer;
+  transition: box-shadow 0.2s ease, border-color 0.2s ease;
 }
 
 /* Debug */
